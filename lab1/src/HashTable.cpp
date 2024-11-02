@@ -1,17 +1,19 @@
-#include "../include/hashTable.h"
+#include "../include/HashTable.h"
 #include "../include/TracyMacros.h"
 #include <cstring>
 
-unsigned int hashTable::total_collisions = 0;
-unsigned int hashTable::total_inserts = 0;
+unsigned int HashTable::total_collisions = 0;
+unsigned int HashTable::total_inserts = 0;
 
-hashTable::hashTable()
-    : table(new HashEntry[INITIAL_SIZE]), table_size(INITIAL_SIZE),
-      num_elements(0) {}
+HashTable::HashTable() {
+    table = new HashEntry[INITIAL_SIZE];
+    table_size = INITIAL_SIZE;
+    num_elements = 0;
+}
 
-hashTable::~hashTable() { delete[] table; }
+HashTable::~HashTable() { delete[] table; }
 /*
-unsigned int hashTable::murmur3_32(const void *key, int len,
+unsigned int HashTable::murmur3_32(const void *key, int len,
                                    unsigned int seed) const {
     TRACE_PLOT;
     const unsigned char *data = (const unsigned char *)key;
@@ -63,7 +65,7 @@ unsigned int hashTable::murmur3_32(const void *key, int len,
 }
 
 */
-unsigned int hashTable::computeHash(State *state) const {
+unsigned int HashTable::computeHash(State *state) const {
     TRACE_SCOPE;
     unsigned int hash = PRIME1;
 
@@ -87,7 +89,7 @@ unsigned int hashTable::computeHash(State *state) const {
 // https://www.cs.cornell.edu/courses/JavaAndDS/files/hashing_collisions.pdf
 // https://www.cs.cornell.edu/courses/JavaAndDS/files/CachingAffectsHashing.pdf
 
-unsigned int hashTable::computeStep(State *state) const {
+unsigned int HashTable::computeStep(State *state) const {
     TRACE_SCOPE;
     unsigned int hash = PRIME2;
 
@@ -106,7 +108,7 @@ unsigned int hashTable::computeStep(State *state) const {
     return ((hash | 1) & (table_size - 1)) | 1;
 }
 
-bool hashTable::contains(State *state) const {
+bool HashTable::contains(State *state) const {
     TRACE_SCOPE;
     unsigned int hash = computeHash(state);
     unsigned int step = computeStep(state);
@@ -129,7 +131,7 @@ bool hashTable::contains(State *state) const {
     return false;
 }
 
-bool hashTable::insert(State *state) {
+bool HashTable::insert(State *state) {
     TRACE_SCOPE;
     total_inserts++;
 
@@ -174,7 +176,7 @@ bool hashTable::insert(State *state) {
     resize();
     return insert(state);
 }
-void hashTable::resize() {
+void HashTable::resize() {
     TRACE_SCOPE;
     const unsigned int old_size = table_size;
     HashEntry *old_table = table;
@@ -194,7 +196,7 @@ void hashTable::resize() {
     delete[] old_table;
 }
 
-void hashTable::cleanup() {
+void HashTable::cleanup() {
     for (unsigned int i = 0; i < table_size; i++) {
         if (table[i].occupied && table[i].state) {
             delete table[i].state;
@@ -204,7 +206,7 @@ void hashTable::cleanup() {
     }
 }
 
-void hashTable::removeState(State *state) {
+void HashTable::removeState(State *state) {
     unsigned int hash = computeHash(state);
     unsigned int step = computeStep(state);
     unsigned int pos = hash;

@@ -1,6 +1,6 @@
 #pragma once
+#include "HashTable.h"
 #include "State.h"
-#include "hashTable.h"
 #include <iostream>
 #include <string>
 

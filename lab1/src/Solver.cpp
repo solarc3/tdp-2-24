@@ -3,7 +3,8 @@
 #include <chrono>
 #include <iostream>
 
-Solver::Solver() : initialized(false) {
+Solver::Solver() {
+    initialized = false;
     max_state = new State();
     target_state = new State();
 }

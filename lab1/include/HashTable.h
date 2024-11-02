@@ -1,7 +1,7 @@
 #pragma once
 #include "State.h"
 
-class hashTable {
+class HashTable {
     public:
     struct HashEntry {
         State *state;
@@ -30,8 +30,8 @@ class hashTable {
     unsigned int murmur3_32(const void *key, int len, unsigned int seed)
    const;
     */
-    hashTable();
-    ~hashTable();
+    HashTable();
+    ~HashTable();
     unsigned int computeHash(State *state) const;
     unsigned int computeStep(State *state) const;
     void resize();

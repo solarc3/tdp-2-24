@@ -1,16 +1,15 @@
 #include "../include/State.h"
 #include "../include/TracyMacros.h"
-#include <algorithm>
-#include <climits>
 #include <cmath>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <sstream>
-using std::min;
 
 using namespace std;
-
+inline unsigned int min_value(unsigned int a, unsigned int b) {
+    return a < b ? a : b;
+}
 State::State() {
     this->size = 0;
     this->jugs = nullptr;
@@ -24,7 +23,7 @@ State::State(unsigned int size, unsigned int *jugs, unsigned int depth,
              unsigned int weight, State *parent) {
     this->size = size;
     this->depth = depth;
-    this->weight = 0;
+    this->weight = weight;
     this->parent = parent;
     this->heuristic_calculated = false;
     this->jugs = new unsigned int[size];
@@ -98,7 +97,7 @@ void State::calculateHeuristic(const State &target_state) {
         float base_penalty = 0.1f;
         float depth_ratio = static_cast<float>(depth) / (size * 10);
         float depth_penalty = base_penalty * (1.0f + depth_ratio);
-        depth_penalty = std::min(0.25f, depth_penalty);
+        depth_penalty = depth_penalty > 0.25f ? 0.25f : depth_penalty;
 
         weight = static_cast<unsigned int>(transfer_value * 1.5f +
                                            pattern_value * pattern_weight +
@@ -127,7 +126,7 @@ State **State::generateSuccessors(const unsigned int *capacities,
                 continue;
 
             unsigned int transfer_amount =
-                min(new_jugs[i], capacities[j] - new_jugs[j]);
+                min_value(new_jugs[i], capacities[j] - new_jugs[j]);
             if (transfer_amount > 0) {
                 new_jugs[i] -= transfer_amount;
                 new_jugs[j] += transfer_amount;
@@ -158,7 +157,7 @@ State **State::generateSuccessors(const unsigned int *capacities,
         }
     }
 
-    delete[] new_jugs; // Liberar arreglo temporal
+    delete[] new_jugs;
     return successors;
 }
 

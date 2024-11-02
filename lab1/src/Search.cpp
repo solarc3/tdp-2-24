@@ -4,18 +4,20 @@
 #include <iostream>
 
 Search::Search(State *initial_state, State *target_state,
-               const unsigned int *capacities)
-    : capacities(capacities), initial_state(initial_state),
-      target_state(target_state), open_list(), closed_list() {
-
-    initial_state->calculateHeuristic(*target_state);
+               const unsigned int *capacities) {
+    this->capacities = capacities;
+    this->initial_state = initial_state;
+    this->target_state = target_state;
+    this->initial_state->calculateHeuristic(*target_state);
 }
 
 Search::~Search() {
     TRACE_SCOPE;
     while (open_list.number > 0) {
         State *state = open_list.pop();
-        delete state;
+        if (state != initial_state && state != target_state) {
+            delete state;
+        }
     }
     closed_list.cleanup();
 }
@@ -114,13 +116,7 @@ Search::Path Search::findPath() {
             return path;
         }
 
-        {
-            TRACE_SCOPE_NAMED("StateProcessing");
-            if (closed_list.contains(current)) {
-                delete current;
-                continue;
-            }
-
+        if (!closed_list.contains(current)) {
             closed_list.insert(current);
             unsigned int num_successors;
 
@@ -133,20 +129,22 @@ Search::Path Search::findPath() {
                 {
                     TRACE_SCOPE_NAMED("SuccessorsProcessing");
                     for (unsigned int i = 0; i < num_successors; i++) {
-                        if (closed_list.contains(successors[i])) {
+                        if (!closed_list.contains(successors[i])) {
+                            {
+                                TRACE_SCOPE_NAMED("HeuristicCalculation");
+                                successors[i]->calculateHeuristic(
+                                    *target_state);
+                            }
+                            open_list.push(successors[i]);
+                        } else {
                             delete successors[i];
-                            continue;
                         }
-                        {
-                            TRACE_SCOPE_NAMED("HeuristicCalculation");
-                            successors[i]->calculateHeuristic(*target_state);
-                        }
-                        open_list.push(successors[i]);
                     }
                 }
-
                 delete[] successors;
             }
+        } else {
+            delete current;
         }
 
         // Update progress metrics
@@ -206,12 +204,14 @@ Search::Path Search::findPath() {
                   << " (0%)" << std::endl;
     }
 
-    return Path{nullptr, 0}; // Return empty path when no solution is found
+    return Path{nullptr, 0};
 }
+
 Search::Path Search::reconstructPath(State *final_state) {
     TRACE_SCOPE;
     unsigned int length = 0;
     State *current = final_state;
+
     while (current != nullptr) {
         length++;
         current = current->parent;
@@ -228,16 +228,13 @@ Search::Path Search::reconstructPath(State *final_state) {
         index--;
     }
 
-    Path path = {path_states, length};
-    return path;
+    return {path_states, length};
 }
 
 void Search::freePath(Path &path) {
     TRACE_SCOPE;
     if (path.states != nullptr) {
-        for (unsigned int i = 0; i < path.length; i++) {
-            delete path.states[i];
-        }
+
         delete[] path.states;
         path.states = nullptr;
         path.length = 0;

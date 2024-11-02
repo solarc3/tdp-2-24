@@ -1,7 +1,6 @@
 #pragma once
 #include "HeuristicMetrics.h"
-#include <bitset>
-using namespace std;
+#include <string>
 
 class State {
     public:
@@ -25,6 +24,6 @@ class State {
     State **generateSuccessors(const unsigned int *capacities,
                                unsigned int &num_successors) const;
     void printState(const char *label);
-    static bool readStatesFromFile(const string &fileName, State *max_state,
-                                   State *target_state);
+    static bool readStatesFromFile(const std::string &fileName,
+                                   State *max_state, State *target_state);
 };

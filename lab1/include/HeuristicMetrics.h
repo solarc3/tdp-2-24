@@ -1,6 +1,5 @@
 #pragma once
-#include <Tracy/tracy/Tracy.hpp>
-
+#include "../include/TracyMacros.h"
 class HeuristicMetrics {
     public:
     static unsigned int total_steps;

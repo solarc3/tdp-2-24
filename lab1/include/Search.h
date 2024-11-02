@@ -1,6 +1,6 @@
 #pragma once
+#include "HashTable.h"
 #include "Heap.h"
-#include "hashTable.h"
 #include <climits>
 #include <random>
 
@@ -25,7 +25,7 @@ class Search {
     State *initial_state;
     State *target_state;
     Heap open_list;
-    hashTable closed_list;
+    HashTable closed_list;
     Path reconstructPath(State *final_state);
     void reversePath(Path &path) const;
 };
