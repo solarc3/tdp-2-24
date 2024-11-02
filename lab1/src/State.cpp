@@ -1,15 +1,7 @@
 #include "../include/State.h"
-#include "../include/TracyMacros.h"
-#include <cmath>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-#include <sstream>
 
 using namespace std;
-inline unsigned int min_value(unsigned int a, unsigned int b) {
-    return a < b ? a : b;
-}
+// Constructor vacio
 State::State() {
     this->size = 0;
     this->jugs = nullptr;
@@ -18,7 +10,8 @@ State::State() {
     this->parent = nullptr;
     this->heuristic_calculated = false;
 }
-
+// Constructor con size, arreglo de jarras, profunidad, peso y padre
+// forma estandar de iniciar un estado
 State::State(unsigned int size, unsigned int *jugs, unsigned int depth,
              unsigned int weight, State *parent) {
     this->size = size;
@@ -30,9 +23,7 @@ State::State(unsigned int size, unsigned int *jugs, unsigned int depth,
     memcpy(this->jugs, jugs, size * sizeof(unsigned int));
 }
 
-// 2. Modify State destructor to handle parent pointer:
 State::~State() { delete[] jugs; }
-// TODO: quiza reemplazar eso
 
 bool State::equals(const State *other) const {
     TRACE_SCOPE;
@@ -44,10 +35,9 @@ void State::calculateHeuristic(const State &target_state) {
         unsigned int pattern_value = 0;
         unsigned int transfer_value = 0;
         unsigned int total_diff = 0;
-
-        // Un solo loop para ambas heurísticas
         for (unsigned int i = 0; i < size; i++) {
-            // Pattern database - mantener como está
+            // Pattern database matches, exceso o igualdad se les da
+            // bonificacion
             if (jugs[i] == target_state.jugs[i]) {
                 pattern_value += 25;
             } else if (jugs[i] > target_state.jugs[i]) {
@@ -57,24 +47,24 @@ void State::calculateHeuristic(const State &target_state) {
                 }
             }
 
-            // Calcular diferencia total y exceso/déficit
+            // diferencia total y deficit
             int diff = target_state.jugs[i] - jugs[i];
             total_diff += static_cast<unsigned int>(abs(diff));
 
-            // Estimar transferencias necesarias
+            // Heuristica de transferencia necesarias
             if (diff != 0) {
                 // Peso basado en capacidad
                 unsigned int capacity_weight =
                     target_state.jugs[i] > 1 ? target_state.jugs[i] : 1;
 
-                // Estimar número de operaciones
+                // Cantidad de operaciones
                 unsigned int operations;
                 if (diff > 0) {
-                    // Necesitamos llenar
+                    // llenar
                     operations = static_cast<unsigned int>(
                         ceil(static_cast<float>(diff) / capacity_weight));
                 } else {
-                    // Necesitamos vaciar
+                    // vaciar
                     operations = static_cast<unsigned int>(
                         ceil(static_cast<float>(-diff) / capacity_weight));
                 }
@@ -83,28 +73,31 @@ void State::calculateHeuristic(const State &target_state) {
             }
         }
 
-        // Normalización
+        // normalizar
         unsigned int pattern_max = size * 25;
         pattern_value =
             pattern_max > pattern_value ? pattern_max - pattern_value : 0;
-
+        // peso ponderado luego de normalizar, 0.65 da el ajuste perfecto
         transfer_value = static_cast<unsigned int>(transfer_value * 0.65f);
 
-        // Ajustar peso de pattern según profundidad
-        float pattern_weight = std::max(0.4f, 0.8f - (depth * 0.002f));
+        // Peso segun profundidad, 0.4 a 0.8
+        // max(0.4, 0.8 - (profundidad * 0.002)
+        float pattern_weight =
+            (0.8f - (depth * 0.002f) > 0.4f) ? 0.8f - (depth * 0.002f) : 0.4f;
 
-        // Penalización por profundidad
+        // Penalizar por profundidad, evitar irse por caminos largos
         float base_penalty = 0.1f;
         float depth_ratio = static_cast<float>(depth) / (size * 10);
         float depth_penalty = base_penalty * (1.0f + depth_ratio);
         depth_penalty = depth_penalty > 0.25f ? 0.25f : depth_penalty;
-
-        weight = static_cast<unsigned int>(transfer_value * 1.5f +
+        // ponderado estatico para la transferencia
+        //  se agrega ademas una penalizacion por profunidad general
+        weight = static_cast<unsigned int>(transfer_value * 3.0f +
                                            pattern_value * pattern_weight +
                                            depth * depth_penalty);
-
+        // agregamos ambos pesos para ver estadisticas despues
         HeuristicMetrics::recordChoice(transfer_value, pattern_value);
-        heuristic_calculated = true;
+        heuristic_calculated = true; // caching
     }
 }
 State **State::generateSuccessors(const unsigned int *capacities,
@@ -112,21 +105,21 @@ State **State::generateSuccessors(const unsigned int *capacities,
     unsigned int max_successors = size * ((size - 1) + 2);
     State **successors = new State *[max_successors];
     num_successors = 0;
-
-    // Reutilizar arreglo temporal para almacenar los valores
     unsigned int *new_jugs = new unsigned int[size];
     memcpy(new_jugs, jugs, size * sizeof(unsigned int));
 
     for (unsigned int i = 0; i < size; i++) {
         unsigned int original_i = new_jugs[i];
 
-        // Transferir agua de jarra i a todas las demás jarras j
+        // jarra i a distintas jarras j
         for (unsigned int j = 0; j < size; j++) {
             if (i == j || new_jugs[i] == 0 || new_jugs[j] == capacities[j])
                 continue;
 
             unsigned int transfer_amount =
-                min_value(new_jugs[i], capacities[j] - new_jugs[j]);
+                (new_jugs[i] < capacities[j] - new_jugs[j])
+                    ? new_jugs[i]
+                    : capacities[j] - new_jugs[j];
             if (transfer_amount > 0) {
                 new_jugs[i] -= transfer_amount;
                 new_jugs[j] += transfer_amount;
@@ -134,13 +127,13 @@ State **State::generateSuccessors(const unsigned int *capacities,
                 successors[num_successors++] = new State(
                     size, new_jugs, depth + 1, 0, const_cast<State *>(this));
 
-                // Restaurar valores para la siguiente iteración
+                // siguiente iteracion
                 new_jugs[i] = original_i;
                 new_jugs[j] = jugs[j];
             }
         }
 
-        // Operación de llenar
+        // llenar jarras
         if (new_jugs[i] < capacities[i]) {
             new_jugs[i] = capacities[i];
             successors[num_successors++] = new State(
@@ -148,7 +141,7 @@ State **State::generateSuccessors(const unsigned int *capacities,
             new_jugs[i] = original_i;
         }
 
-        // Operación de vaciar
+        // vaciar jarras
         if (new_jugs[i] > 0) {
             new_jugs[i] = 0;
             successors[num_successors++] = new State(
@@ -179,43 +172,35 @@ bool State::readStatesFromFile(const string &fileName, State *max_state,
                                State *target_state) {
     TRACE_SCOPE;
     if (!max_state || !target_state) {
-        cerr << "Error: Invalid state pointers" << endl;
+        cerr << "Error: puntero para el State invalido." << endl;
         return false;
     }
 
     ifstream file(fileName);
     if (!file.is_open()) {
-        cerr << "Error: Could not open file " << fileName << endl;
+        cerr << "Error, no se pudo abrir el archivo" << fileName << endl;
         return false;
     }
 
     string line;
-    // Read maximum capacities
     if (!getline(file, line)) {
-        cerr << "Error: File is empty" << endl;
+        cerr << "Error: el archivo esta vacio" << endl;
         return false;
     }
-
-    // Count number of jugs and validate
+    // contar jarras
     int count = 1;
     for (char c : line) {
         if (c == ' ')
             count++;
     }
 
-    if (count <= 0 || count > 64) {
-        cerr << "Error: Invalid number of jugs (must be between 1 and 64)"
-             << endl;
-        return false;
-    }
-
-    // Initialize states with validated size
+    // iniciar states
     max_state->size = count;
     target_state->size = count;
     max_state->jugs = new unsigned int[count];
     target_state->jugs = new unsigned int[count];
 
-    // Parse maximum capacities
+    // obtener maximos
     istringstream ss(line);
     bool valid_capacities = true;
     for (int i = 0; i < count; i++) {
@@ -226,18 +211,18 @@ bool State::readStatesFromFile(const string &fileName, State *max_state,
     }
 
     if (!valid_capacities) {
-        cerr << "Error: Invalid capacity values" << endl;
+        cerr << "Error: capacidades maximas invalidas" << endl;
         delete[] max_state->jugs;
         delete[] target_state->jugs;
         return false;
     }
 
-    // Initialize target state
+    // target state
     for (unsigned int i = 0; i < target_state->size; i++) {
         target_state->jugs[i] = 0;
     }
 
-    // Read target state
+    // agregar info a target state
     if (!getline(file, line)) {
         cerr << "Error: Missing target state" << endl;
         delete[] max_state->jugs;
@@ -254,8 +239,7 @@ bool State::readStatesFromFile(const string &fileName, State *max_state,
             break;
         }
         if (value > max_state->jugs[i]) {
-            cerr << "Error: Target value exceeds capacity for jug " << i
-                 << endl;
+            cerr << "Error: target value se sobrepasa en: " << i << endl;
             valid_targets = false;
             break;
         }

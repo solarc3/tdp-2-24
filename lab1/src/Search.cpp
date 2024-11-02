@@ -1,7 +1,4 @@
 #include "../include/Search.h"
-#include "../include/HeuristicMetrics.h"
-#include "../include/TracyMacros.h"
-#include <iostream>
 
 Search::Search(State *initial_state, State *target_state,
                const unsigned int *capacities) {
@@ -30,7 +27,7 @@ Search::Path Search::findPath() {
 
     // Reset metrics
     HeuristicMetrics::total_steps = 0;
-    HeuristicMetrics::chosen_manhattan = 0;
+    HeuristicMetrics::chosen_transfers = 0;
     HeuristicMetrics::chosen_pattern = 0;
 
     while (open_list.number > 0) {
@@ -39,6 +36,7 @@ Search::Path Search::findPath() {
         steps++;
 
         if (current->equals(target_state)) {
+
             TRACE_PLOT("Steps explored", static_cast<int64_t>(steps));
             TRACE_PLOT("Total states generated",
                        static_cast<int64_t>(total_states_generated));
@@ -47,11 +45,11 @@ Search::Path Search::findPath() {
             TRACE_PLOT("Closed list size",
                        static_cast<int64_t>(closed_list.num_elements));
 
-            // Record final heuristic statistics - with safety checks
+            // Record final heuristic statistics
             if (HeuristicMetrics::total_steps > 0) {
                 TRACE_PLOT(
-                    "Final Manhattan Ratio",
-                    static_cast<int64_t>(HeuristicMetrics::chosen_manhattan *
+                    "Final transfers Ratio",
+                    static_cast<int64_t>(HeuristicMetrics::chosen_transfers *
                                          100 / HeuristicMetrics::total_steps));
                 TRACE_PLOT(
                     "Final Pattern Ratio",
@@ -61,7 +59,7 @@ Search::Path Search::findPath() {
 
             TRACE_FRAME_NAMED("Solution Found");
 
-            // Output statistics
+            // Output stats
             std::cout << "\nSolution found!" << std::endl;
             std::cout << "Steps explored: " << steps << std::endl;
             std::cout << "Total states generated: " << total_states_generated
@@ -71,15 +69,15 @@ Search::Path Search::findPath() {
             std::cout << "States in closed list: " << closed_list.num_elements
                       << std::endl;
 
-            // Output heuristic metrics with safety checks
+            // Output heuristic stats
             std::cout << "\nHeuristic Selection Stats:" << std::endl;
             std::cout << "Total heuristic calculations: "
                       << HeuristicMetrics::total_steps << std::endl;
 
             if (HeuristicMetrics::total_steps > 0) {
-                std::cout << "Manhattan chosen: "
-                          << HeuristicMetrics::chosen_manhattan << " ("
-                          << (HeuristicMetrics::chosen_manhattan * 100.0 /
+                std::cout << "transfers chosen: "
+                          << HeuristicMetrics::chosen_transfers << " ("
+                          << (HeuristicMetrics::chosen_transfers * 100.0 /
                               HeuristicMetrics::total_steps)
                           << "%)" << std::endl;
                 std::cout << "Pattern chosen: "
@@ -87,27 +85,6 @@ Search::Path Search::findPath() {
                           << (HeuristicMetrics::chosen_pattern * 100.0 /
                               HeuristicMetrics::total_steps)
                           << "%)" << std::endl;
-            } else {
-                std::cout << "Manhattan chosen: "
-                          << HeuristicMetrics::chosen_manhattan << " (0%)"
-                          << std::endl;
-                std::cout << "Pattern chosen: "
-                          << HeuristicMetrics::chosen_pattern << " (0%)"
-                          << std::endl;
-            }
-
-            // Calculate and output average depths with safety checks
-            if (HeuristicMetrics::chosen_manhattan > 0) {
-                std::cout << "Average depth when Manhattan chosen: "
-                          << current->depth * 1.0 /
-                                 HeuristicMetrics::chosen_manhattan
-                          << std::endl;
-            }
-            if (HeuristicMetrics::chosen_pattern > 0) {
-                std::cout << "Average depth when Pattern chosen: "
-                          << current->depth * 1.0 /
-                                 HeuristicMetrics::chosen_pattern
-                          << std::endl;
             }
 
             Path path = reconstructPath(current);
@@ -116,7 +93,13 @@ Search::Path Search::findPath() {
             return path;
         }
 
-        if (!closed_list.contains(current)) {
+        {
+            TRACE_SCOPE_NAMED("StateProcessing");
+            if (closed_list.contains(current)) {
+                delete current;
+                continue;
+            }
+
             closed_list.insert(current);
             unsigned int num_successors;
 
@@ -129,22 +112,20 @@ Search::Path Search::findPath() {
                 {
                     TRACE_SCOPE_NAMED("SuccessorsProcessing");
                     for (unsigned int i = 0; i < num_successors; i++) {
-                        if (!closed_list.contains(successors[i])) {
-                            {
-                                TRACE_SCOPE_NAMED("HeuristicCalculation");
-                                successors[i]->calculateHeuristic(
-                                    *target_state);
-                            }
-                            open_list.push(successors[i]);
-                        } else {
+                        if (closed_list.contains(successors[i])) {
                             delete successors[i];
+                            continue;
                         }
+                        {
+                            TRACE_SCOPE_NAMED("HeuristicCalculation");
+                            successors[i]->calculateHeuristic(*target_state);
+                        }
+                        open_list.push(successors[i]);
                     }
                 }
+
                 delete[] successors;
             }
-        } else {
-            delete current;
         }
 
         // Update progress metrics
@@ -155,11 +136,10 @@ Search::Path Search::findPath() {
         TRACE_PLOT("Closed list size",
                    static_cast<int64_t>(closed_list.num_elements));
 
-        // Update heuristic selection rates periodically with safety check
         if (steps % 1000 == 0 && HeuristicMetrics::total_steps > 0) {
             TRACE_PLOT(
-                "Manhattan Selection Rate",
-                static_cast<int64_t>(HeuristicMetrics::chosen_manhattan * 100 /
+                "Transfers Selection Rate",
+                static_cast<int64_t>(HeuristicMetrics::chosen_transfers * 100 /
                                      HeuristicMetrics::total_steps));
             TRACE_PLOT(
                 "Pattern Selection Rate",
@@ -181,15 +161,15 @@ Search::Path Search::findPath() {
     std::cout << "States in closed list: " << closed_list.num_elements << "\n"
               << std::endl;
 
-    // Output final heuristic stats with safety checks
+    // Output final heuristic stats
     std::cout << "\nFinal Heuristic Stats:" << std::endl;
     std::cout << "Total calculations: " << HeuristicMetrics::total_steps
               << std::endl;
 
     if (HeuristicMetrics::total_steps > 0) {
-        std::cout << "Manhattan chosen: " << HeuristicMetrics::chosen_manhattan
+        std::cout << "transfers chosen: " << HeuristicMetrics::chosen_transfers
                   << " ("
-                  << (HeuristicMetrics::chosen_manhattan * 100.0 /
+                  << (HeuristicMetrics::chosen_transfers * 100.0 /
                       HeuristicMetrics::total_steps)
                   << "%)" << std::endl;
         std::cout << "Pattern chosen: " << HeuristicMetrics::chosen_pattern
@@ -197,16 +177,16 @@ Search::Path Search::findPath() {
                   << (HeuristicMetrics::chosen_pattern * 100.0 /
                       HeuristicMetrics::total_steps)
                   << "%)" << std::endl;
-    } else {
-        std::cout << "Manhattan chosen: " << HeuristicMetrics::chosen_manhattan
-                  << " (0%)" << std::endl;
-        std::cout << "Pattern chosen: " << HeuristicMetrics::chosen_pattern
-                  << " (0%)" << std::endl;
     }
 
-    return Path{nullptr, 0};
-}
+    // Limpiar todos los estados pendientes en la open_list
+    while (open_list.number > 0) {
+        State *state = open_list.pop();
+        delete state;
+    }
 
+    return Path{nullptr, 0}; // Return empty path when no solution is found
+}
 Search::Path Search::reconstructPath(State *final_state) {
     TRACE_SCOPE;
     unsigned int length = 0;

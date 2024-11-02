@@ -1,7 +1,5 @@
 #include "../include/Solver.h"
 #include "../include/TracyMacros.h"
-#include <iostream>
-#include <limits>
 
 int main() {
     TRACE_SCOPE;

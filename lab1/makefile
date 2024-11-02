@@ -1,4 +1,4 @@
-FLAGS = -O2 -Wall
+FLAGS = -O2 -Wall -std=c++11
 
 # Directorios
 OBJ_DIR = obj

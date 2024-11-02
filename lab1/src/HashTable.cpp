@@ -1,6 +1,4 @@
 #include "../include/HashTable.h"
-#include "../include/TracyMacros.h"
-#include <cstring>
 
 unsigned int HashTable::total_collisions = 0;
 unsigned int HashTable::total_inserts = 0;
@@ -12,64 +10,16 @@ HashTable::HashTable() {
 }
 
 HashTable::~HashTable() { delete[] table; }
-/*
-unsigned int HashTable::murmur3_32(const void *key, int len,
-                                   unsigned int seed) const {
-    TRACE_PLOT;
-    const unsigned char *data = (const unsigned char *)key;
-    const int nblocks = len >> 2;
-    unsigned int h1 = seed;
-
-    // Body
-    const unsigned int *blocks = (const unsigned int *)(data);
-    for (int i = 0; i < nblocks; i++) {
-        unsigned int k1 = blocks[i];
-
-        k1 *= C1;
-        k1 = (k1 << R1) | (k1 >> (32 - R1));
-        k1 *= C2;
-
-        h1 ^= k1;
-        h1 = (h1 << R2) | (h1 >> (32 - R2));
-        h1 = h1 * M + N;
-    }
-
-    // Tail
-    const unsigned char *tail = data + (nblocks << 2);
-    unsigned int k1 = 0;
-
-    switch (len & 3) {
-        case 3:
-            k1 ^= tail[2] << 16;
-            [[fallthrough]];
-        case 2:
-            k1 ^= tail[1] << 8;
-            [[fallthrough]];
-        case 1:
-            k1 ^= tail[0];
-            k1 *= C1;
-            k1 = (k1 << R1) | (k1 >> (32 - R1));
-            k1 *= C2;
-            h1 ^= k1;
-    }
-
-    // Finalization
-    h1 ^= len;
-    h1 ^= h1 >> 16;
-    h1 *= 0x85ebca6b;
-    h1 ^= h1 >> 13;
-    h1 *= 0xc2b2ae35;
-    h1 ^= h1 >> 16;
-
-    return h1;
-}
-
-*/
+// https://gcc.gnu.org/onlinedocs/libstdc++/ext/pb_ds/hash_based_containers.html
+// tabla con size 2^n, se hace el AND y -1 para obtener el modulo, mas
+// eficiente
+// https://www.cs.cornell.edu/courses/JavaAndDS/files/hashing_collisions.pdf
+// https://www.cs.cornell.edu/courses/JavaAndDS/files/CachingAffectsHashing.pdf
 unsigned int HashTable::computeHash(State *state) const {
     TRACE_SCOPE;
     unsigned int hash = PRIME1;
-
-    // Mejor mezcla de bits usando rotaciones y XOR
+    // bit mix con XOR y fast mul
+    // da buen balance entre velocidad y distribucion
     for (unsigned int i = 0; i < state->size; i++) {
         unsigned int k = state->jugs[i];
         k *= PRIME2;
@@ -78,16 +28,11 @@ unsigned int HashTable::computeHash(State *state) const {
 
         hash ^= k;
         hash = (hash << 13) | (hash >> 19);
-        hash += hash << 3; // multiplicación rápida por 8
+        hash += hash << 3; // fast mul 8
     }
 
     return hash & (table_size - 1);
 }
-// https://gcc.gnu.org/onlinedocs/libstdc++/ext/pb_ds/hash_based_containers.html
-// tabla con size 2^n, se hace el AND y -1 para obtener el modulo, mas
-// eficiente
-// https://www.cs.cornell.edu/courses/JavaAndDS/files/hashing_collisions.pdf
-// https://www.cs.cornell.edu/courses/JavaAndDS/files/CachingAffectsHashing.pdf
 
 unsigned int HashTable::computeStep(State *state) const {
     TRACE_SCOPE;
@@ -96,15 +41,15 @@ unsigned int HashTable::computeStep(State *state) const {
     for (unsigned int i = 0; i < state->size; i++) {
         unsigned int k = state->jugs[i];
         k *= PRIME3;
-        k = (k << 11) | (k >> 21); // rotación diferente
+        k = (k << 11) | (k >> 21); // mix distinto
         k *= PRIME1;
 
         hash ^= k;
         hash = (hash << 11) | (hash >> 21);
-        hash += hash << 2; // multiplicación rápida por 4
+        hash += hash << 2; // fast mul 4
     }
 
-    // Asegurar que el paso sea impar y menor que table_size
+    // impar y menor que el table size
     return ((hash | 1) & (table_size - 1)) | 1;
 }
 
@@ -115,7 +60,7 @@ bool HashTable::contains(State *state) const {
     unsigned int pos = hash;
     unsigned int start_pos = pos;
     const unsigned int mask = table_size - 1;
-    // prueba de colisiones
+    // colision check
     do {
         pos &= mask;
         if (!table[pos].occupied) {
@@ -124,7 +69,6 @@ bool HashTable::contains(State *state) const {
         if (table[pos].state && table[pos].state->equals(state)) {
             return true;
         }
-        // cout << "Colision en busqueda, posicion " << pos << endl;
         total_collisions++;
         pos += step;
     } while ((pos & mask) != start_pos);
@@ -135,7 +79,7 @@ bool HashTable::insert(State *state) {
     TRACE_SCOPE;
     total_inserts++;
 
-    // Redimensionar con un factor de carga más bajo
+    // redimension en base al factor de balance
     if ((num_elements << 7) >= (table_size * BALANCE_FACTOR)) {
         resize();
     }
@@ -146,7 +90,9 @@ bool HashTable::insert(State *state) {
     const unsigned int mask = table_size - 1;
 
     unsigned int probe_count = 0;
-    const unsigned int MAX_PROBES = 16; // Limitar número de sondeos
+    const unsigned int MAX_PROBES =
+        16; // si son muchas veces las que se intenta encontrar, quiza es tiempo
+            // de aumentar el size
 
     do {
         pos &= mask;
@@ -165,7 +111,7 @@ bool HashTable::insert(State *state) {
         pos += step;
         probe_count++;
 
-        // Si hay muchas colisiones en secuencia, redimensionar
+        // muchas colisiones? redimensionar
         if (probe_count >= MAX_PROBES) {
             resize();
             return insert(state);
@@ -181,12 +127,13 @@ void HashTable::resize() {
     const unsigned int old_size = table_size;
     HashEntry *old_table = table;
 
-    // Duplicar tamaño
+    // duplicar potencia de 2
     table_size <<= 1;
     table = new HashEntry[table_size];
     num_elements = 0;
 
-    // Rehasher los elementos existentes
+    // rehashear, no ingresar a la misma posicion, asi se evita tener las mismas
+    // posiciones y se distribuyen mejor
     for (unsigned int i = 0; i < old_size; i++) {
         if (old_table[i].occupied && old_table[i].state) {
             insert(old_table[i].state);

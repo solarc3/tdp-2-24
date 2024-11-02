@@ -1,6 +1,7 @@
 #pragma once
+#include "../include/TracyMacros.h"
 #include "State.h"
-
+#include <cstring>
 class HashTable {
     public:
     struct HashEntry {
@@ -9,11 +10,11 @@ class HashTable {
         HashEntry() : state(nullptr), occupied(false) {}
     };
 
-    // Aumentar tamaño inicial y reducir factor de carga para menos colisiones
+    // size 2^18 y factor de balance agresivo
     static constexpr unsigned int INITIAL_SIZE = 1u << 18;
     static constexpr unsigned int BALANCE_FACTOR = 35;
 
-    // Números primos grandes para mejor distribución
+    // numeros primos para hashing
     static constexpr unsigned int PRIME1 = 2654435761u;
     static constexpr unsigned int PRIME2 = 2246822519u;
     static constexpr unsigned int PRIME3 = 3266489917u;
@@ -22,14 +23,9 @@ class HashTable {
     unsigned int table_size;
     unsigned int num_elements;
 
-    // Estadísticas
+    // stats para la tabla hash
     static unsigned int total_collisions;
     static unsigned int total_inserts;
-    /*
-    private:
-    unsigned int murmur3_32(const void *key, int len, unsigned int seed)
-   const;
-    */
     HashTable();
     ~HashTable();
     unsigned int computeHash(State *state) const;

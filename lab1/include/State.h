@@ -1,18 +1,23 @@
 #pragma once
+#include "../include/TracyMacros.h"
 #include "HeuristicMetrics.h"
+#include <cmath>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 #include <string>
 
 class State {
     public:
-    // TODO: quiza cambiar esto, como son funciones constantes
-    // Lazy evaluation para algo constante
     State *parent;
-    mutable bool heuristic_calculated;
+    mutable bool heuristic_calculated; // mutabilidad para cachear el valor
     unsigned int size;
     unsigned int *jugs;
     unsigned int depth;
     unsigned int weight;
-    unsigned int state_hash; // Almacena el hash precalculado
+    // constantes multiplicativas de hash, exportadas de la implementacion de
+    // murmur32u (https://github.com/aappleby/smhasher/tree/master/src)
     static constexpr unsigned int C1 = 0xcc9e2d51;
     static constexpr unsigned int C2 = 0x1b873593;
     State();

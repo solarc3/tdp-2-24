@@ -1,6 +1,4 @@
 #include "../include/Heap.h"
-#include "../include/TracyMacros.h"
-#include <iostream>
 
 Heap::Heap(int n) {
     TRACE_SCOPE;

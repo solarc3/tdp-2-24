@@ -1,7 +1,4 @@
 #include "../include/Solver.h"
-#include "../include/TracyMacros.h"
-#include <chrono>
-#include <iostream>
 
 Solver::Solver() {
     initialized = false;
@@ -25,13 +22,13 @@ bool Solver::initializeFromFile(const std::string &filename) {
     target_state = new State();
 
     if (!State::readStatesFromFile(filename, max_state, target_state)) {
-        std::cout << "Error reading file\n";
+        std::cout << "Error en la lectura del archivo\n";
         initialized = false;
         return false;
     }
 
-    std::cout << "File read successfully\n";
-    std::cout << "States read:\n";
+    std::cout << "Archivo leido con exito\n";
+    std::cout << "Estados leidos:\n";
     max_state->printState("Maximum capacities");
     target_state->printState("Target state     ");
 
@@ -43,11 +40,11 @@ void Solver::solve() {
     TRACE_SCOPE;
 
     if (!initialized) {
-        std::cout << "Error: Must initialize with a valid file first\n";
+        std::cout << "Error: Se debe iniciar con un archivo primero\n";
         return;
     }
 
-    std::cout << "\nCurrent states before solving:\n";
+    std::cout << "\nStates actuales antes de resolver:\n";
     printCurrentStates();
 
     // Create initial state
@@ -71,7 +68,7 @@ void Solver::solve() {
 
     // Handle solution results
     if (solution.length == 0) {
-        std::cout << "No solution found\n";
+        std::cout << "No se encontro solucion\n";
     } else {
         cout << "\nSecuencia de estados:\n";
         for (unsigned int i = 0; i < solution.length; i++) {
@@ -93,10 +90,12 @@ void Solver::solve() {
 
 void Solver::printCurrentStates() const {
     if (!initialized) {
-        std::cout << "States not initialized\n";
+        std::cout << "Estados no inicializados\n";
         return;
     }
 
     max_state->printState("Maximum capacities");
     target_state->printState("Target state     ");
 }
+
+bool Solver::isInitialized() const { return initialized; }

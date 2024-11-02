@@ -1,21 +1,17 @@
 #pragma once
+#include "../include/TracyMacros.h"
 #include "Search.h"
 #include "State.h"
+#include <chrono>
+#include <iostream>
 #include <string>
-
 class Solver {
     public:
     Solver();
     ~Solver();
-
-    // Initialize the solver with a file
     bool initializeFromFile(const std::string &filename);
-
-    // Solve the water jugs problem
     void solve();
-
-    // Get current state information
-    bool isInitialized() const { return initialized; }
+    bool isInitialized() const;
     void printCurrentStates() const;
 
     private:

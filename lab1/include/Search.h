@@ -1,8 +1,9 @@
 #pragma once
+#include "../include/HeuristicMetrics.h"
+#include "../include/TracyMacros.h"
 #include "HashTable.h"
 #include "Heap.h"
-#include <climits>
-#include <random>
+#include <iostream>
 
 class Search {
     public:
@@ -18,9 +19,6 @@ class Search {
     ~Search();
     Path findPath();
     static void freePath(Path &path);
-
-    private:
-    // Miembros en orden de inicialización
     const unsigned int *capacities;
     State *initial_state;
     State *target_state;
