@@ -19,6 +19,8 @@ class Search {
     ~Search();
     Path findPath();
     static void freePath(Path &path);
+    void randomDFS(State *start_state, unsigned int max_states,
+                   unsigned int max_depth_diff, HashTable &visited_states);
     const unsigned int *capacities;
     State *initial_state;
     State *target_state;
