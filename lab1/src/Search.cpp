@@ -168,7 +168,7 @@ Search::Path Search::findPath() {
         State *current = open_list.pop();
         steps++;
 
-        // Verificar solución
+        // es la solucion? estamos listos
         if (current->equals(target_state)) {
             unsigned int solution_cost = current->depth;
 
@@ -189,8 +189,8 @@ Search::Path Search::findPath() {
                 }
             }
 
-            // Reportar estadísticas
-            std::cout << "\nEstadísticas de búsqueda:" << std::endl;
+            // estadisticas
+            std::cout << "\nStats de busqueda:" << std::endl;
             std::cout << "Estados totales: " << total_states_generated
                       << std::endl;
             std::cout << "Estados base: " << states_from_base << " ("
@@ -204,14 +204,14 @@ Search::Path Search::findPath() {
             return path;
         }
 
-        // Actualizar métricas de estancamiento
+        // updatear stagnation
         if (current->weight < stag.best_heuristic) {
             stag.best_heuristic = current->weight;
             stag.counter = 0;
             stag.consecutive_fails = 0;
             stag.last_improvement_depth = current->depth;
 
-            // Ajustar límite de estancamiento basado en el progreso
+            // stagnation limit basado en progreso
             float progress_ratio = static_cast<float>(current->depth) / steps;
             if (progress_ratio > 0.1f) {
                 stag.current_stagnation_limit =
@@ -228,32 +228,32 @@ Search::Path Search::findPath() {
             stag.counter++;
         }
 
-        // Estrategia de saltos cuando hay estancamiento
+        // jumps cuando hay stagnation
         if (stag.counter > stag.current_stagnation_limit) {
             stag.consecutive_fails++;
 
-            // Ajustar parámetros basados en fallos consecutivos
+            // fallos consecutivos, se cambia mutation_rate
             if (stag.consecutive_fails > 3) {
                 stag.mutation_rate =
                     std::min(stag.mutation_rate + 5, stag.MAX_MUTATION);
                 stag.num_jumps = std::min(stag.num_jumps + 1, stag.MAX_JUMPS);
             }
 
-            // Generar saltos adaptativos
+            // jump generation
             for (unsigned int jump = 0; jump < stag.num_jumps; jump++) {
                 unsigned int *new_jugs = new unsigned int[current->size];
                 memcpy(new_jugs, current->jugs,
                        current->size * sizeof(unsigned int));
 
                 bool made_changes = false;
-                // Modificar jarras usando mutation_rate adaptativo
+                // cambiar jarras usando mutation_rate
                 for (unsigned int i = 0; i < current->size; i++) {
                     if (mutation_chance(rng) < stag.mutation_rate) {
                         // Calcular valor basado en el target y actual
                         unsigned int target_val = target_state->jugs[i];
                         unsigned int current_val = current->jugs[i];
 
-                        // Favorecer movimientos hacia el target
+                        // movimientos que acerquen al target
                         if (current_val != target_val) {
                             std::uniform_int_distribution<unsigned int>
                                 val_dist(std::min(current_val, target_val),
@@ -263,7 +263,8 @@ Search::Path Search::findPath() {
                         }
                     }
                 }
-
+                // si se genero un cambio, calcular heuristica y ver si no
+                // existe
                 if (made_changes) {
                     State *random_state =
                         new State(current->size, new_jugs, current->depth + 1,
@@ -286,7 +287,7 @@ Search::Path Search::findPath() {
             continue;
         }
 
-        // Búsqueda base normal
+        // no hay stagnation? busqueda normal
         {
             TRACE_SCOPE_NAMED("StateProcessing");
             if (closed_list.contains(current)) {
@@ -314,7 +315,7 @@ Search::Path Search::findPath() {
             delete[] successors;
         }
 
-        // Métricas de progreso
+        // stats progreso
         TRACE_PLOT("Current step", static_cast<int64_t>(steps));
         TRACE_PLOT("States from base", static_cast<int64_t>(states_from_base));
         TRACE_PLOT("States from jumps",
@@ -325,8 +326,8 @@ Search::Path Search::findPath() {
         TRACE_PLOT("Current num jumps", static_cast<int64_t>(stag.num_jumps));
     }
 
-    // No se encontró solución
-    std::cout << "\nNo se encontró solución." << std::endl;
+    // no hay solucion
+    std::cout << "\nNo se encontro solucion." << std::endl;
     std::cout << "Estados totales: " << total_states_generated << std::endl;
     std::cout << "Estados base: " << states_from_base << " ("
               << (states_from_base * 100.0 / total_states_generated) << "%)"
