@@ -44,7 +44,7 @@ State *Heap::pop() {
 
 void Heap::resize(int new_capacity) {
     TRACE_SCOPE;
-    std::cout << " heap resized to: " << new_capacity << std::endl;
+    // std::cout << " heap resized to: " << new_capacity << std::endl;
 
     State **new_arr = new State *[new_capacity];
     {

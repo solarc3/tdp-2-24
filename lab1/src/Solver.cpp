@@ -19,8 +19,6 @@ void Solver::cleanup() {
 
 bool Solver::initializeFromFile(const std::string &filename) {
     TRACE_SCOPE;
-
-    // Clean up previous states if they exist
     cleanup();
     max_state = new State();
     target_state = new State();
@@ -74,6 +72,15 @@ void Solver::solve() {
     if (solution.length == 0) {
         std::cout << "No solution found\n";
     } else {
+        cout << "\nSecuencia de estados:\n";
+        for (unsigned int i = 0; i < solution.length; i++) {
+            if (!solution.states[i])
+                continue; // Skip null states
+            for (unsigned int j = 0; j < solution.states[i]->size; j++) {
+                cout << solution.states[i]->jugs[j] << " ";
+            }
+            cout << "\n";
+        }
         TRACE_PLOT("Solution time (ms)", duration / 1000.0);
         std::cout << "Solution found in " << solution.length - 1 << " steps\n";
         std::cout << "Execution time: " << duration / 1000.0
