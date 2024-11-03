@@ -1,6 +1,7 @@
 #include "../include/State.h"
 using namespace std;
 // Constructor vacio
+State::AdaptiveParams State::adaptive_params;
 State::State() {
     this->size = 0;
     this->jugs = nullptr;
@@ -36,13 +37,13 @@ void State::calculateHeuristic(const State &target_state) {
         unsigned int max_jug_size = 0;
         unsigned int matching_jugs = 0;
 
-        // Segmentación (mantenido igual que el original)
+        // Segmentación
         const unsigned int SEGMENT_SIZE = 8;
         unsigned int num_segments = (size + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
         unsigned int *segment_matches = new unsigned int[num_segments]();
         unsigned int *segment_max = new unsigned int[num_segments]();
 
-        // Primera pasada: análisis por segmento (igual que original)
+        // Primera pasada: análisis por segmento
         for (unsigned int i = 0; i < size; i++) {
             unsigned int segment = i / SEGMENT_SIZE;
             if (target_state.jugs[i] > segment_max[segment]) {
@@ -57,31 +58,48 @@ void State::calculateHeuristic(const State &target_state) {
             }
         }
 
-        // Momentum global (mantenido igual)
+        // Momentum global
         float global_momentum =
             1.0f - (static_cast<float>(matching_jugs) / size);
 
         // Calcular pesos para las tres estrategias basados en la profundidad
-        float depth_ratio = std::min(1.0f, static_cast<float>(depth) /
-                                               60.0f); // Duplicar escala
+        float depth_ratio = std::min(1.0f, static_cast<float>(depth) / 60.0f);
+
         // Pesos base para cada estrategia
         float strategy_weights[3];
+
         // Exploración: mantenerla más tiempo
         strategy_weights[0] = std::max(
-            0.4f, 1.0f - (depth_ratio * 0.5f)); // Decaimiento más lento
+            0.3f, // Mínimo de exploración garantizado
+            adaptive_params.exploration_weight * (1.0f - (depth_ratio * 0.5f)));
 
         // Balance: hacerla más amplia y centrada más tarde
-        strategy_weights[1] =
-            1.0f - std::pow((depth_ratio - 0.6f), 2); // Mover pico a 60%
+        strategy_weights[1] = std::max(
+            0.2f, // Mínimo de balance garantizado
+            adaptive_params.balance_weight *
+                (1.0f -
+                 std::pow(static_cast<float>(depth_ratio - 0.6f), 2.0f)));
 
         // Optimización: retrasarla y hacerla más gradual
         strategy_weights[2] = std::max(
-            0.0f,                         // Empezar desde 0
-            std::min(0.4f,                // Máximo más bajo
-                     depth_ratio < 0.4f ? // Retrasar inicio
-                         0.0f
-                                        : // No optimización al inicio
-                         (depth_ratio - 0.4f) * 0.6f)); // Subida más lenta
+            0.1f, // Mínimo de optimización garantizado
+            adaptive_params.optimization_weight *
+                (depth_ratio < 0.4f ? 0.0f : (depth_ratio - 0.4f) * 0.6f));
+
+        // Factor de adaptación basado en el tamaño del problema
+        float size_factor = std::min(1.0f, static_cast<float>(size) / 30.0f);
+
+        // Ajustar pesos basados en el rendimiento actual
+        if (adaptive_params.consecutive_improvements > 3) {
+            // Si estamos mejorando consistentemente, aumentar optimización
+            strategy_weights[2] *= (1.0f + size_factor * 0.2f);
+            strategy_weights[0] *= (1.0f - size_factor * 0.1f);
+        } else if (adaptive_params.plateaus > 2) {
+            // Si estamos estancados, aumentar exploración
+            strategy_weights[0] *= (1.0f + size_factor * 0.3f);
+            strategy_weights[2] *= (1.0f - size_factor * 0.15f);
+        }
+
         // Normalizar pesos
         float sum =
             strategy_weights[0] + strategy_weights[1] + strategy_weights[2];
@@ -111,11 +129,10 @@ void State::calculateHeuristic(const State &target_state) {
 
                 // Pattern value combinado de las tres estrategias
                 float pattern_boost =
-                    strategy_weights[0] *
-                        35.0f + // Aumentar valor base exploración (era 30)
-                    strategy_weights[1] * 25.0f + // Mantener balance igual
-                    strategy_weights[2] *
-                        15.0f; // Reducir optimización (era 20)
+                    strategy_weights[0] * 35.0f + // Exploración
+                    strategy_weights[1] * 25.0f + // Balance
+                    strategy_weights[2] * 15.0f;  // Optimización
+
                 pattern_value += static_cast<unsigned int>(
                     pattern_boost * (1.0f + position_factor * 0.5f));
             } else {
@@ -124,14 +141,15 @@ void State::calculateHeuristic(const State &target_state) {
 
                 unsigned int local_max = segment_max[segment];
                 unsigned int operations = static_cast<unsigned int>(
-                    ceil(static_cast<float>(abs(diff)) / local_max));
+                    std::ceil(static_cast<float>(std::abs(diff)) / local_max));
+
                 float transfer_factor =
                     strategy_weights[0] *
-                        (12.0f - (6.0f * combined_momentum)) + // Más permisivo
+                        (12.0f - (6.0f * combined_momentum)) + // Exploración
                     strategy_weights[1] *
-                        (20.0f - (12.0f * combined_momentum)) + // Igual
+                        (20.0f - (12.0f * combined_momentum)) + // Balance
                     strategy_weights[2] *
-                        (28.0f - (18.0f * combined_momentum)); // Más estricto
+                        (28.0f - (18.0f * combined_momentum)); // Optimización
 
                 transfer_value +=
                     static_cast<unsigned int>(operations * transfer_factor);
@@ -141,25 +159,25 @@ void State::calculateHeuristic(const State &target_state) {
         delete[] segment_matches;
         delete[] segment_max;
 
-        // Normalización con bonus (mantenido del original)
+        // Normalización con bonus
         unsigned int pattern_max = static_cast<unsigned int>(size * 25 * 1.5f);
         pattern_value =
             pattern_max > pattern_value ? pattern_max - pattern_value : 0;
 
         // Penalización por profundidad adaptativa
-        float size_factor = std::min(1.0f, static_cast<float>(size) / 30.0f);
         float base_penalty = 0.1f + (0.1f * size_factor);
+
+        // Ajustar penalización basado en rendimiento
+        float performance_factor =
+            std::min(1.0f, adaptive_params.current_performance);
 
         // Penalización combinada de las tres estrategias
         float depth_penalty = std::min(
-            base_penalty +
-                (depth / (size * (2.5f + global_momentum *
-                                             3.5f))) * // Aumentar denominadores
-                    (strategy_weights[0] *
-                         0.6f + // Reducir penalización exploración (era 0.8)
-                     strategy_weights[1] * 1.0f + // Mantener balance
-                     strategy_weights[2] *
-                         1.4f), // Aumentar penalización optimización (era 1.2)
+            (base_penalty + (depth / (size * (2.5f + global_momentum * 3.5f))) *
+                                (strategy_weights[0] * 0.6f +   // Exploración
+                                 strategy_weights[1] * 1.0f +   // Balance
+                                 strategy_weights[2] * 1.4f)) * // Optimización
+                (1.0f + (performance_factor * size_factor * 0.2f)),
             0.5f);
 
         // Peso final con las tres estrategias integradas
@@ -167,15 +185,13 @@ void State::calculateHeuristic(const State &target_state) {
             transfer_value * (1.5f + global_momentum * 1.5f) +
             pattern_value * (1.0f - depth_penalty * 0.7f) +
             depth * depth_penalty *
-                (5.0f +
-                 25.0f * global_momentum *
-                     (strategy_weights[0] *
-                          0.8f + // Exploración: menor influencia de profundidad
-                      strategy_weights[1] * 1.0f + // Balance: influencia normal
-                      strategy_weights[2] *
-                          1.2f))); // Optimización: mayor influencia
+                (5.0f + 25.0f * global_momentum *
+                            (strategy_weights[0] * 0.8f + // Exploración
+                             strategy_weights[1] * 1.0f + // Balance
+                             strategy_weights[2] * 1.2f)  // Optimización
+                 ));
 
-        // Tracing (mantenido del original)
+        // Tracing
         TRACE_PLOT("State/Heuristic/PatternValue",
                    static_cast<int64_t>(pattern_value));
         TRACE_PLOT("State/Heuristic/TransferValue",
@@ -187,6 +203,9 @@ void State::calculateHeuristic(const State &target_state) {
         TRACE_PLOT("State/Heuristic/Weight", static_cast<int64_t>(weight));
         TRACE_PLOT("State/Stats/MatchingJugs",
                    static_cast<int64_t>(matching_jugs));
+        TRACE_PLOT(
+            "State/Adaptive/Performance",
+            static_cast<int64_t>(adaptive_params.current_performance * 100));
 
         heuristic_calculated = true;
     }

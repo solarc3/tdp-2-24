@@ -6,7 +6,6 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-
 class State {
     public:
     State *parent;
@@ -15,6 +14,22 @@ class State {
     unsigned int *jugs;
     unsigned int depth;
     unsigned int weight;
+    struct AdaptiveParams {
+        float exploration_weight;
+        float balance_weight;
+        float optimization_weight;
+
+        float current_performance;
+        unsigned int consecutive_improvements;
+        unsigned int plateaus;
+
+        AdaptiveParams()
+            : exploration_weight(0.4f), balance_weight(0.4f),
+              optimization_weight(0.2f), current_performance(0.0f),
+              consecutive_improvements(0), plateaus(0) {}
+    };
+    static AdaptiveParams adaptive_params;
+
     // constantes multiplicativas de hash, exportadas de la implementacion de
     // murmur32u (https://github.com/aappleby/smhasher/tree/master/src)
     static constexpr unsigned int C1 = 0xcc9e2d51;

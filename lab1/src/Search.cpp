@@ -135,20 +135,22 @@ void Search::generateRandomVariations(State *current, std::mt19937 &rng,
 
     // Si no hay mejora por mucho tiempo, aumentar la temperatura
     if (stag.steps_since_last_improvement >= stag.stagnation_threshold) {
-        stag.temperature = std::min(stag.temperature * 1.5f,
-                                    StagnationParams::INITIAL_TEMPERATURE);
+        stag.temperature = std::min(stag.temperature * stag.REHEAT_FACTOR,
+                                    stag.INITIAL_TEMPERATURE);
         stag.steps_since_last_improvement = 0;
     }
 
     unsigned int *new_jugs = new unsigned int[current->size];
     std::uniform_real_distribution<float> probability(0.0f, 1.0f);
+    bool improved = false;
 
     // Generar varios estados aleatorios
     for (unsigned int i = 0; i < stag.random_states_per_check; i++) {
-        memcpy(new_jugs, current->jugs, current->size * sizeof(unsigned int));
+        std::memcpy(new_jugs, current->jugs,
+                    current->size * sizeof(unsigned int));
 
         // Multi-operation mutations: aplicar múltiples operaciones aleatorias
-        unsigned int num_operations = 1; // 1 a 3 operaciones
+        unsigned int num_operations = 1 + (rng() % 2); // 1 a 2 operaciones
         bool valid_sequence = false;
 
         for (unsigned int op = 0; op < num_operations; op++) {
@@ -210,23 +212,42 @@ void Search::generateRandomVariations(State *current, std::mt19937 &rng,
                 accept = true;
                 stag.best_heuristic = new_state->weight;
                 stag.steps_since_last_improvement = 0;
+                improved = true;
+                State::adaptive_params.consecutive_improvements++;
+                State::adaptive_params.plateaus = 0;
+                State::adaptive_params.current_performance = std::min(
+                    1.0f, State::adaptive_params.current_performance + 0.1f);
             } else {
                 // Probabilidad de aceptar peores soluciones basada en
                 // temperatura
                 float delta =
                     static_cast<float>(new_state->weight - stag.best_heuristic);
+                // Factor de escala dinámico basado en el tamaño del problema
+                float scale_factor =
+                    500.0f * (1.0f + static_cast<float>(current->size) / 20.0f);
                 float acceptance_prob =
-                    exp(-delta / (stag.temperature * 1000.0f));
+                    std::exp(-delta / (stag.temperature * scale_factor));
                 accept = probability(rng) < acceptance_prob;
-                TRACE_PLOT("Search/Random/AcceptanceRate",
-                           static_cast<int64_t>(acceptance_prob * 100));
+
+                if (!accept) {
+                    State::adaptive_params.consecutive_improvements = 0;
+                    if (stag.steps_since_last_improvement >
+                        stag.stagnation_threshold / 2) {
+                        State::adaptive_params.plateaus++;
+                        State::adaptive_params.current_performance = std::max(
+                            0.0f,
+                            State::adaptive_params.current_performance - 0.05f);
+                    }
+                }
             }
+
+            TRACE_PLOT("Search/Random/AcceptanceRate",
+                       static_cast<int64_t>(acceptance_prob * 100));
 
             if (accept && (!closed_list.contains(new_state) ||
                            new_state->weight < stag.best_heuristic)) {
                 TRACE_PLOT("Search/Random/StatesAccepted",
-                           static_cast<int64_t>(accept ? 1 : 0));
-                // std::cout << "Aceptado" << std::endl;
+                           static_cast<int64_t>(1));
                 open_list.push(new_state);
                 total_states_generated++;
             } else {
@@ -235,14 +256,24 @@ void Search::generateRandomVariations(State *current, std::mt19937 &rng,
         }
     }
 
-    // Enfriar la temperatura gradualmente
-    stag.temperature *= stag.COOLING_RATE;
+    // Actualizar temperatura con la nueva lógica
+    stag.updateTemperature(improved);
+
+    // Ajustar pesos adaptativos basados en temperatura
+    float temp_factor = stag.temperature / stag.INITIAL_TEMPERATURE;
+    State::adaptive_params.exploration_weight =
+        std::min(0.6f, 0.4f + (temp_factor * 0.2f));
+    State::adaptive_params.optimization_weight =
+        std::max(0.2f, 0.4f - (temp_factor * 0.2f));
+    State::adaptive_params.balance_weight =
+        1.0f - (State::adaptive_params.exploration_weight +
+                State::adaptive_params.optimization_weight);
+
     TRACE_PLOT("Search/Random/Temperature",
                static_cast<int64_t>(stag.temperature * 100));
-
     TRACE_PLOT("Search/Random/StatesGenerated", static_cast<int64_t>(1));
-
     TRACE_PLOT("Search/Random/StepsSinceImprovement",
                static_cast<int64_t>(stag.steps_since_last_improvement));
+
     delete[] new_jugs;
 }
