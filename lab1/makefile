@@ -1,4 +1,4 @@
-FLAGS = -O2 -Wall -std=c++11
+FLAGS = -O2 -Wall -std=c++11 -march=native -Ofast -ffast-math
 
 # Directorios
 OBJ_DIR = obj
