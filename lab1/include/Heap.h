@@ -1,25 +1,46 @@
 #pragma once
 #include "../include/TracyMacros.h"
-#include "HashTable.h"
 #include "State.h"
-#include <iostream>
-#include <string>
 
-using namespace std;
-class Heap {
+class PairingHeap {
     public:
-    State **arr;
-    int capacity;
-    int number;
-    static const int INITIAL_CAPACITY = 4096; // default
+    // Node structure for the pairing heap
+    struct Node {
+        State *state;
+        Node *leftChild;
+        Node *nextSibling;
+        Node *prev;
 
-    Heap(int n);
-    Heap();
-    ~Heap();
-    void push(State *x);
+        Node(State *s)
+            : state(s), leftChild(nullptr), nextSibling(nullptr),
+              prev(nullptr) {}
+    };
+
+    // Constants from original heap
+    static constexpr int INITIAL_CAPACITY = 4096;
+
+    // Constructor and destructor
+    PairingHeap();
+    ~PairingHeap();
+
+    // Main operations
+    void push(State *state);
     State *pop();
-    void bubbleUp(int i);
-    void bubbleDown(int i);
-    void swap(int i, int j);
-    void resize(int new_capacity);
+    State *peek() const;
+    void clear();
+
+    // Getters
+    bool empty() const;
+
+    private:
+    Node *root_;
+    int size_;
+
+    // Helper functions
+    Node *merge(Node *h1, Node *h2);
+    Node *mergePairs(Node *firstSibling);
+    void deleteTree(Node *node);
+    static bool hasHigherPriority(const State *a, const State *b) {
+        return a->weight < b->weight;
+    }
 };

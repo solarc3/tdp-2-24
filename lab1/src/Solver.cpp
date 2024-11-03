@@ -70,14 +70,14 @@ void Solver::solve() {
     if (solution.length == 0) {
         std::cout << "No se encontro solucion\n";
     } else {
-        cout << "\nSecuencia de estados:\n";
+        std::cout << "\nSecuencia de estados:\n";
         for (unsigned int i = 0; i < solution.length; i++) {
             if (!solution.states[i])
                 continue; // Skip null states
             for (unsigned int j = 0; j < solution.states[i]->size; j++) {
-                cout << solution.states[i]->jugs[j] << " ";
+                std::cout << solution.states[i]->jugs[j] << " ";
             }
-            cout << "\n";
+            std::cout << "\n";
         }
         TRACE_PLOT("Solution time (ms)", duration / 1000.0);
         std::cout << "Solution found in " << solution.length - 1 << " steps\n";

@@ -34,70 +34,93 @@ void State::calculateHeuristic(const State &target_state) {
     if (!heuristic_calculated) {
         unsigned int pattern_value = 0;
         unsigned int transfer_value = 0;
-        unsigned int total_diff = 0;
+        unsigned int max_jug_size = 0;
+        unsigned int matching_jugs = 0;
+
+        // Segmentar el problema
+        const unsigned int SEGMENT_SIZE = 8; // Analizar en grupos de 8 jarras
+        unsigned int num_segments = (size + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+        unsigned int *segment_matches = new unsigned int[num_segments]();
+        unsigned int *segment_max = new unsigned int[num_segments]();
+
+        // Primera pasada: análisis por segmentos
         for (unsigned int i = 0; i < size; i++) {
-            // Pattern database matches, exceso o igualdad se les da
-            // bonificacion
-            if (jugs[i] == target_state.jugs[i]) {
-                pattern_value += 25;
-            } else if (jugs[i] > target_state.jugs[i]) {
-                pattern_value += 12;
-                if (target_state.jugs[i] > 0) {
-                    pattern_value += 5;
-                }
+            unsigned int segment = i / SEGMENT_SIZE;
+
+            if (target_state.jugs[i] > segment_max[segment]) {
+                segment_max[segment] = target_state.jugs[i];
             }
-
-            // diferencia total y deficit
-            int diff = target_state.jugs[i] - jugs[i];
-            total_diff += static_cast<unsigned int>(abs(diff));
-
-            // Heuristica de transferencia necesarias
-            if (diff != 0) {
-                // Peso basado en capacidad
-                unsigned int capacity_weight =
-                    target_state.jugs[i] > 1 ? target_state.jugs[i] : 1;
-
-                // Cantidad de operaciones
-                unsigned int operations;
-                if (diff > 0) {
-                    // llenar
-                    operations = static_cast<unsigned int>(
-                        ceil(static_cast<float>(diff) / capacity_weight));
-                } else {
-                    // vaciar
-                    operations = static_cast<unsigned int>(
-                        ceil(static_cast<float>(-diff) / capacity_weight));
-                }
-
-                transfer_value += operations * capacity_weight;
+            if (target_state.jugs[i] > max_jug_size) {
+                max_jug_size = target_state.jugs[i];
+            }
+            if (jugs[i] == target_state.jugs[i]) {
+                matching_jugs++;
+                segment_matches[segment]++;
             }
         }
 
-        // normalizar
-        unsigned int pattern_max = size * 25;
+        // Calcular momentum por segmento y global
+        float global_momentum =
+            1.0f - (static_cast<float>(matching_jugs) / size);
+
+        // Segunda pasada: cálculo de valores
+        for (unsigned int i = 0; i < size; i++) {
+            unsigned int segment = i / SEGMENT_SIZE;
+            float segment_momentum =
+                1.0f - (static_cast<float>(segment_matches[segment]) /
+                        std::min(SEGMENT_SIZE, size - segment * SEGMENT_SIZE));
+
+            // Combinar momentum global y local
+            float combined_momentum =
+                (global_momentum * 0.7f + segment_momentum * 0.3f);
+
+            if (jugs[i] == target_state.jugs[i]) {
+                // Bonus por match basado en posición
+                float position_factor = 1.0f - (static_cast<float>(i) / size);
+                pattern_value += static_cast<unsigned int>(
+                    25.0f * (1.0f + position_factor * 0.5f));
+            } else {
+                int diff = static_cast<int>(target_state.jugs[i]) -
+                           static_cast<int>(jugs[i]);
+
+                // Usar el máximo del segmento para calcular operaciones
+                unsigned int local_max = segment_max[segment];
+                unsigned int operations = static_cast<unsigned int>(
+                    ceil(static_cast<float>(abs(diff)) / local_max));
+
+                // Transfer value reducido por momentum combinado
+                float transfer_factor = 20.0f - (12.0f * combined_momentum);
+                transfer_value +=
+                    static_cast<unsigned int>(operations * transfer_factor);
+            }
+        }
+
+        delete[] segment_matches;
+        delete[] segment_max;
+
+        // Normalización adaptativa
+        unsigned int pattern_max =
+            static_cast<unsigned int>(size * 25 * 1.5f); // Ajustado por bonus
         pattern_value =
             pattern_max > pattern_value ? pattern_max - pattern_value : 0;
-        // peso ponderado luego de normalizar, 0.65 da el ajuste perfecto
-        transfer_value = static_cast<unsigned int>(transfer_value * 0.65f);
 
-        // Peso segun profundidad, 0.4 a 0.8
-        // max(0.4, 0.8 - (profundidad * 0.002)
-        float pattern_weight =
-            (0.8f - (depth * 0.002f) > 0.4f) ? 0.8f - (depth * 0.002f) : 0.4f;
+        // Penalización por profundidad más agresiva en casos grandes
+        float size_factor = std::min(1.0f, static_cast<float>(size) / 30.0f);
+        float base_penalty = 0.1f + (0.1f * size_factor);
+        float depth_penalty = std::min(
+            base_penalty + (depth / (size * (2.0f + global_momentum * 3.0f))),
+            0.5f);
 
-        // Penalizar por profundidad, evitar irse por caminos largos
-        float base_penalty = 0.1f;
-        float depth_ratio = static_cast<float>(depth) / (size * 10);
-        float depth_penalty = base_penalty * (1.0f + depth_ratio);
-        depth_penalty = depth_penalty > 0.25f ? 0.25f : depth_penalty;
-        // ponderado estatico para la transferencia
-        //  se agrega ademas una penalizacion por profunidad general
-        weight = static_cast<unsigned int>(transfer_value * 3.0f +
-                                           pattern_value * pattern_weight +
-                                           depth * depth_penalty);
-        // agregamos ambos pesos para ver estadisticas despues
+        weight = static_cast<unsigned int>(
+            transfer_value *
+                (1.5f + global_momentum * 1.5f) + // Más variación con momentum
+            pattern_value *
+                (1.0f - depth_penalty * 0.7f) + // Pattern más estable
+            depth * depth_penalty *
+                (5.0f + 25.0f * global_momentum)); // Profundidad más flexible
+
         HeuristicMetrics::recordChoice(transfer_value, pattern_value);
-        heuristic_calculated = true; // caching
+        heuristic_calculated = true;
     }
 }
 State **State::generateSuccessors(const unsigned int *capacities,

@@ -25,7 +25,6 @@ bool HashTable::insert(State *state) {
     unsigned int psl = 0;
 
     while (true) {
-        // Bucket vacío - insertar directamente
         if (!buckets_[pos].occupied) {
             buckets_[pos].state = state;
             buckets_[pos].psl = psl;
@@ -41,7 +40,7 @@ bool HashTable::insert(State *state) {
 
         // Robin Hood - robar al rico
         if (psl > buckets_[pos].psl) {
-            // Swap elementos
+            // swap
             State *temp_state = buckets_[pos].state;
             unsigned int temp_psl = buckets_[pos].psl;
 
