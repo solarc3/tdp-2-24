@@ -1,12 +1,24 @@
 #include "../include/Heap.h"
 
-PairingHeap::PairingHeap() : root_(nullptr), size_(0) { TRACE_SCOPE; }
-
+PairingHeap::PairingHeap() {
+    TRACE_SCOPE;
+    this->root_ = nullptr;
+    this->size_ = 0;
+}
+PairingHeap::Node::Node(State *s) {
+    this->state = s;
+    this->leftChild = nullptr;
+    this->nextSibling = nullptr;
+    this->prev = nullptr;
+}
 PairingHeap::~PairingHeap() {
     TRACE_SCOPE;
     clear();
 }
 
+bool PairingHeap::hasHigherPriority(const State *a, const State *b) {
+    return a->weight < b->weight;
+}
 void PairingHeap::push(State *state) {
     TRACE_SCOPE;
     Node *newNode = new Node(state);

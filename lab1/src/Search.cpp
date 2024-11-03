@@ -75,9 +75,9 @@ Search::Path Search::findPath() {
             }
         }
         TRACE_PLOT("Search/Lists/OpenSize",
-                   static_cast<int64_t>(open_list.size_));
+                   static_cast<int64_t>(open_list.size()));
         TRACE_PLOT("Search/Lists/ClosedSize",
-                   static_cast<int64_t>(closed_list.size_));
+                   static_cast<int64_t>(closed_list.size()));
 
         TRACE_PLOT("Search/Progress/CurrentDepth",
                    static_cast<int64_t>(current->depth));
@@ -229,6 +229,8 @@ void Search::generateRandomVariations(State *current, std::mt19937 &rng,
                     std::exp(-delta / (stag.temperature * scale_factor));
                 accept = probability(rng) < acceptance_prob;
 
+                TRACE_PLOT("Search/Random/AcceptanceRate",
+                           static_cast<int64_t>(acceptance_prob * 100));
                 if (!accept) {
                     State::adaptive_params.consecutive_improvements = 0;
                     if (stag.steps_since_last_improvement >
@@ -240,9 +242,6 @@ void Search::generateRandomVariations(State *current, std::mt19937 &rng,
                     }
                 }
             }
-
-            TRACE_PLOT("Search/Random/AcceptanceRate",
-                       static_cast<int64_t>(acceptance_prob * 100));
 
             if (accept && (!closed_list.contains(new_state) ||
                            new_state->weight < stag.best_heuristic)) {
@@ -276,4 +275,58 @@ void Search::generateRandomVariations(State *current, std::mt19937 &rng,
                static_cast<int64_t>(stag.steps_since_last_improvement));
 
     delete[] new_jugs;
+}
+Search::StagnationParams::StagnationParams(unsigned int problem_size) {
+    steps_since_last_improvement = 0;
+    steps_since_last_random = 0;
+    random_check_interval = DEFAULT_INTERVAL;
+    random_states_per_check = DEFAULT_RANDOM_STATES;
+    best_heuristic = UINT_MAX;
+    stagnation_threshold = STAGNATION_LIMIT;
+    temperature = INITIAL_TEMPERATURE;
+}
+
+void Search::StagnationParams::updateAdaptiveParams(bool improved,
+                                                    float current_temp) {
+    if (improved) {
+        State::adaptive_params.consecutive_improvements++;
+        State::adaptive_params.plateaus = 0;
+        State::adaptive_params.current_performance =
+            std::min(1.0f, State::adaptive_params.current_performance + 0.1f);
+    } else {
+        State::adaptive_params.consecutive_improvements = 0;
+        if (steps_since_last_improvement > stagnation_threshold / 2) {
+            State::adaptive_params.plateaus++;
+            State::adaptive_params.current_performance = std::max(
+                0.0f, State::adaptive_params.current_performance - 0.05f);
+        }
+    }
+
+    // Ajustar pesos basados en temperatura
+    float temp_factor = current_temp / INITIAL_TEMPERATURE;
+    State::adaptive_params.exploration_weight =
+        std::min(0.6f, 0.4f + (temp_factor * 0.2f));
+    State::adaptive_params.optimization_weight =
+        std::max(0.2f, 0.4f - (temp_factor * 0.2f));
+}
+
+void Search::StagnationParams::updateTemperature(bool improved) {
+    if (improved) {
+        // Si hay mejora, enfriar normalmente
+        temperature *= COOLING_RATE;
+    } else if (steps_since_last_improvement > stagnation_threshold) {
+        // Si estamos estancados, recalentar
+        temperature =
+            std::min(temperature * REHEAT_FACTOR, INITIAL_TEMPERATURE);
+    } else {
+        // Enfriar más lentamente cuando estamos cerca del mínimo
+        float current_cooling =
+            COOLING_RATE + (1.0f - COOLING_RATE) *
+                               (temperature - MIN_TEMPERATURE) /
+                               INITIAL_TEMPERATURE;
+        temperature *= current_cooling;
+    }
+
+    // Asegurar que no bajamos del mínimo
+    temperature = std::max(temperature, MIN_TEMPERATURE);
 }

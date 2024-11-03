@@ -1,6 +1,5 @@
 #include "../include/State.h"
 using namespace std;
-// Constructor vacio
 State::AdaptiveParams State::adaptive_params;
 State::State() {
     this->size = 0;
@@ -10,6 +9,15 @@ State::State() {
     this->parent = nullptr;
     this->heuristic_calculated = false;
 }
+State::AdaptiveParams::AdaptiveParams() {
+    this->exploration_weight = 0.4f;
+    this->balance_weight = 0.4f;
+    this->optimization_weight = 0.2f;
+    this->current_performance = 0.0f;
+    this->consecutive_improvements = 0;
+    this->plateaus = 0;
+}
+
 // Constructor con size, arreglo de jarras, profunidad, peso y padre
 // forma estandar de iniciar un estado
 State::State(unsigned int size, unsigned int *jugs, unsigned int depth,

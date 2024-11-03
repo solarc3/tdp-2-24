@@ -6,7 +6,9 @@ HashTable::Bucket::Bucket() {
     this->occupied = false;
 }
 
-HashTable::HashTable() : size_(0), capacity_(INITIAL_SIZE) {
+HashTable::HashTable() {
+    this->size_ = 0;
+    this->capacity_ = INITIAL_SIZE;
     buckets_ = new Bucket[capacity_];
 }
 
@@ -59,7 +61,7 @@ bool HashTable::insert(State *state) {
         TRACE_PLOT("HashTable/Performance/PSL", static_cast<int64_t>(psl));
         TRACE_PLOT("HashTable/Performance/Collisions", static_cast<int64_t>(1));
         // Si llegamos muy lejos, redimensionar
-        if (psl >= 32) {
+        if (psl >= 8) {
             resize();
             return insert(state);
         }
