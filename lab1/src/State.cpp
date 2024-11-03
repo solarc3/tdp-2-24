@@ -1,5 +1,4 @@
 #include "../include/State.h"
-
 using namespace std;
 // Constructor vacio
 State::State() {
@@ -37,16 +36,15 @@ void State::calculateHeuristic(const State &target_state) {
         unsigned int max_jug_size = 0;
         unsigned int matching_jugs = 0;
 
-        // Segmentar el problema
-        const unsigned int SEGMENT_SIZE = 8; // Analizar en grupos de 8 jarras
+        // Segmentación (mantenido igual que el original)
+        const unsigned int SEGMENT_SIZE = 8;
         unsigned int num_segments = (size + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
         unsigned int *segment_matches = new unsigned int[num_segments]();
         unsigned int *segment_max = new unsigned int[num_segments]();
 
-        // Primera pasada: análisis por segmentos
+        // Primera pasada: análisis por segmento (igual que original)
         for (unsigned int i = 0; i < size; i++) {
             unsigned int segment = i / SEGMENT_SIZE;
-
             if (target_state.jugs[i] > segment_max[segment]) {
                 segment_max[segment] = target_state.jugs[i];
             }
@@ -59,37 +57,82 @@ void State::calculateHeuristic(const State &target_state) {
             }
         }
 
-        // Calcular momentum por segmento y global
+        // Momentum global (mantenido igual)
         float global_momentum =
             1.0f - (static_cast<float>(matching_jugs) / size);
 
-        // Segunda pasada: cálculo de valores
+        // Calcular pesos para las tres estrategias basados en la profundidad
+        float depth_ratio = std::min(1.0f, static_cast<float>(depth) /
+                                               60.0f); // Duplicar escala
+        // Pesos base para cada estrategia
+        float strategy_weights[3];
+        // Exploración: mantenerla más tiempo
+        strategy_weights[0] = std::max(
+            0.4f, 1.0f - (depth_ratio * 0.5f)); // Decaimiento más lento
+
+        // Balance: hacerla más amplia y centrada más tarde
+        strategy_weights[1] =
+            1.0f - std::pow((depth_ratio - 0.6f), 2); // Mover pico a 60%
+
+        // Optimización: retrasarla y hacerla más gradual
+        strategy_weights[2] = std::max(
+            0.0f,                         // Empezar desde 0
+            std::min(0.4f,                // Máximo más bajo
+                     depth_ratio < 0.4f ? // Retrasar inicio
+                         0.0f
+                                        : // No optimización al inicio
+                         (depth_ratio - 0.4f) * 0.6f)); // Subida más lenta
+        // Normalizar pesos
+        float sum =
+            strategy_weights[0] + strategy_weights[1] + strategy_weights[2];
+        for (int i = 0; i < 3; i++) {
+            strategy_weights[i] /= sum;
+        }
+
+        TRACE_PLOT("State/Weights/Exploration",
+                   static_cast<int64_t>(strategy_weights[0] * 100));
+        TRACE_PLOT("State/Weights/Balance",
+                   static_cast<int64_t>(strategy_weights[1] * 100));
+        TRACE_PLOT("State/Weights/Optimization",
+                   static_cast<int64_t>(strategy_weights[2] * 100));
+
+        // Segunda pasada: cálculo de valores con las tres estrategias
         for (unsigned int i = 0; i < size; i++) {
             unsigned int segment = i / SEGMENT_SIZE;
             float segment_momentum =
                 1.0f - (static_cast<float>(segment_matches[segment]) /
                         std::min(SEGMENT_SIZE, size - segment * SEGMENT_SIZE));
 
-            // Combinar momentum global y local
             float combined_momentum =
                 (global_momentum * 0.7f + segment_momentum * 0.3f);
 
             if (jugs[i] == target_state.jugs[i]) {
-                // Bonus por match basado en posición
                 float position_factor = 1.0f - (static_cast<float>(i) / size);
+
+                // Pattern value combinado de las tres estrategias
+                float pattern_boost =
+                    strategy_weights[0] *
+                        35.0f + // Aumentar valor base exploración (era 30)
+                    strategy_weights[1] * 25.0f + // Mantener balance igual
+                    strategy_weights[2] *
+                        15.0f; // Reducir optimización (era 20)
                 pattern_value += static_cast<unsigned int>(
-                    25.0f * (1.0f + position_factor * 0.5f));
+                    pattern_boost * (1.0f + position_factor * 0.5f));
             } else {
                 int diff = static_cast<int>(target_state.jugs[i]) -
                            static_cast<int>(jugs[i]);
 
-                // Usar el máximo del segmento para calcular operaciones
                 unsigned int local_max = segment_max[segment];
                 unsigned int operations = static_cast<unsigned int>(
                     ceil(static_cast<float>(abs(diff)) / local_max));
+                float transfer_factor =
+                    strategy_weights[0] *
+                        (12.0f - (6.0f * combined_momentum)) + // Más permisivo
+                    strategy_weights[1] *
+                        (20.0f - (12.0f * combined_momentum)) + // Igual
+                    strategy_weights[2] *
+                        (28.0f - (18.0f * combined_momentum)); // Más estricto
 
-                // Transfer value reducido por momentum combinado
-                float transfer_factor = 20.0f - (12.0f * combined_momentum);
                 transfer_value +=
                     static_cast<unsigned int>(operations * transfer_factor);
             }
@@ -98,33 +141,59 @@ void State::calculateHeuristic(const State &target_state) {
         delete[] segment_matches;
         delete[] segment_max;
 
-        // Normalización adaptativa
-        unsigned int pattern_max =
-            static_cast<unsigned int>(size * 25 * 1.5f); // Ajustado por bonus
+        // Normalización con bonus (mantenido del original)
+        unsigned int pattern_max = static_cast<unsigned int>(size * 25 * 1.5f);
         pattern_value =
             pattern_max > pattern_value ? pattern_max - pattern_value : 0;
 
-        // Penalización por profundidad más agresiva en casos grandes
+        // Penalización por profundidad adaptativa
         float size_factor = std::min(1.0f, static_cast<float>(size) / 30.0f);
         float base_penalty = 0.1f + (0.1f * size_factor);
+
+        // Penalización combinada de las tres estrategias
         float depth_penalty = std::min(
-            base_penalty + (depth / (size * (2.0f + global_momentum * 3.0f))),
+            base_penalty +
+                (depth / (size * (2.5f + global_momentum *
+                                             3.5f))) * // Aumentar denominadores
+                    (strategy_weights[0] *
+                         0.6f + // Reducir penalización exploración (era 0.8)
+                     strategy_weights[1] * 1.0f + // Mantener balance
+                     strategy_weights[2] *
+                         1.4f), // Aumentar penalización optimización (era 1.2)
             0.5f);
 
+        // Peso final con las tres estrategias integradas
         weight = static_cast<unsigned int>(
-            transfer_value *
-                (1.5f + global_momentum * 1.5f) + // Más variación con momentum
-            pattern_value *
-                (1.0f - depth_penalty * 0.7f) + // Pattern más estable
+            transfer_value * (1.5f + global_momentum * 1.5f) +
+            pattern_value * (1.0f - depth_penalty * 0.7f) +
             depth * depth_penalty *
-                (5.0f + 25.0f * global_momentum)); // Profundidad más flexible
+                (5.0f +
+                 25.0f * global_momentum *
+                     (strategy_weights[0] *
+                          0.8f + // Exploración: menor influencia de profundidad
+                      strategy_weights[1] * 1.0f + // Balance: influencia normal
+                      strategy_weights[2] *
+                          1.2f))); // Optimización: mayor influencia
 
-        HeuristicMetrics::recordChoice(transfer_value, pattern_value);
+        // Tracing (mantenido del original)
+        TRACE_PLOT("State/Heuristic/PatternValue",
+                   static_cast<int64_t>(pattern_value));
+        TRACE_PLOT("State/Heuristic/TransferValue",
+                   static_cast<int64_t>(transfer_value));
+        TRACE_PLOT("State/Heuristic/DepthPenalty",
+                   static_cast<int64_t>(depth_penalty * 100));
+        TRACE_PLOT("State/Heuristic/GlobalMomentum",
+                   static_cast<int64_t>(global_momentum * 100));
+        TRACE_PLOT("State/Heuristic/Weight", static_cast<int64_t>(weight));
+        TRACE_PLOT("State/Stats/MatchingJugs",
+                   static_cast<int64_t>(matching_jugs));
+
         heuristic_calculated = true;
     }
 }
 State **State::generateSuccessors(const unsigned int *capacities,
                                   unsigned int &num_successors) const {
+    TRACE_SCOPE;
     unsigned int max_successors = size * ((size - 1) + 2);
     State **successors = new State *[max_successors];
     num_successors = 0;
@@ -172,13 +241,17 @@ State **State::generateSuccessors(const unsigned int *capacities,
             new_jugs[i] = original_i;
         }
     }
-
+    TRACE_PLOT("State/Successors/Count", static_cast<int64_t>(num_successors));
+    TRACE_PLOT("State/Successors/MaxPossible",
+               static_cast<int64_t>(max_successors));
+    TRACE_PLOT("State/Operations/Transfers", static_cast<int64_t>(1));
+    TRACE_PLOT("State/Operations/Fills", static_cast<int64_t>(1));
+    TRACE_PLOT("State/Operations/Empties", static_cast<int64_t>(1));
     delete[] new_jugs;
     return successors;
 }
 
 void State::printState(const char *label) {
-
     cout << label << ": ";
     if (this->size == 0 || this->jugs == nullptr) {
         cout << "No inicializado\n";

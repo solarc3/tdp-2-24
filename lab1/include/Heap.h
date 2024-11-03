@@ -31,8 +31,8 @@ class PairingHeap {
 
     // Getters
     bool empty() const;
+    int size() const;
 
-    private:
     Node *root_;
     int size_;
 

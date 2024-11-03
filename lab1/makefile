@@ -15,11 +15,11 @@ $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
 # Ejecutable principal sin tracy
-water_jugs: $(OBJ_DIR)/State.o $(OBJ_DIR)/Search.o $(OBJ_DIR)/Heap.o $(OBJ_DIR)/HashTable.o $(OBJ_DIR)/HeuristicMetrics.o $(OBJ_DIR)/Solver.o $(OBJ_DIR)/main.o
+water_jugs: $(OBJ_DIR)/State.o $(OBJ_DIR)/Search.o $(OBJ_DIR)/Heap.o $(OBJ_DIR)/HashTable.o $(OBJ_DIR)/Solver.o $(OBJ_DIR)/main.o
 	g++ ${FLAGS} $(OBJ_DIR)/*.o -o water_jugs
 
 # Ejecutable con tracy
-water_jugs_tracy: $(OBJ_DIR)/State.o $(OBJ_DIR)/Search.o $(OBJ_DIR)/Heap.o $(OBJ_DIR)/HashTable.o $(OBJ_DIR)/HeuristicMetrics.o $(OBJ_DIR)/Solver.o $(OBJ_DIR)/main.o
+water_jugs_tracy: $(OBJ_DIR)/State.o $(OBJ_DIR)/Search.o $(OBJ_DIR)/Heap.o $(OBJ_DIR)/HashTable.o $(OBJ_DIR)/Solver.o $(OBJ_DIR)/main.o
 	g++ ${FLAGS} $(OBJ_DIR)/*.o /usr/lib/libTracyClient.a -o water_jugs
 
 # Reglas de compilación para cada objeto
@@ -37,9 +37,6 @@ $(OBJ_DIR)/Heap.o: src/Heap.cpp include/Heap.h
 
 $(OBJ_DIR)/HashTable.o: src/HashTable.cpp include/HashTable.h
 	g++ ${FLAGS} -I./include -c src/HashTable.cpp -o $(OBJ_DIR)/HashTable.o
-
-$(OBJ_DIR)/HeuristicMetrics.o: src/HeuristicMetrics.cpp include/HeuristicMetrics.h
-	g++ ${FLAGS} -I./include -c src/HeuristicMetrics.cpp -o $(OBJ_DIR)/HeuristicMetrics.o
 
 $(OBJ_DIR)/Solver.o: src/Solver.cpp include/Solver.h
 	g++ ${FLAGS} -I./include -c src/Solver.cpp -o $(OBJ_DIR)/Solver.o

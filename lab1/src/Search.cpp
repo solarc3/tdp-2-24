@@ -22,6 +22,7 @@ Search::~Search() {
 
 Search::Path Search::findPath() {
     TRACE_SCOPE;
+
     open_list.push(initial_state);
     unsigned int steps = 0;
     unsigned int total_states_generated = 0;
@@ -41,7 +42,9 @@ Search::Path Search::findPath() {
             std::cout << "\nEstadísticas de búsqueda:" << std::endl;
             std::cout << "Estados totales: " << total_states_generated
                       << std::endl;
-            return reconstructPath(current);
+            return reconstructPath(
+                current,
+                total_states_generated); // Pasar total_states_generated
         }
 
         if (!closed_list.contains(current)) {
@@ -71,10 +74,19 @@ Search::Path Search::findPath() {
                 }
             }
         }
+        TRACE_PLOT("Search/Lists/OpenSize",
+                   static_cast<int64_t>(open_list.size_));
+        TRACE_PLOT("Search/Lists/ClosedSize",
+                   static_cast<int64_t>(closed_list.size_));
 
-        TRACE_PLOT("Current step", static_cast<int64_t>(steps));
-        TRACE_PLOT("Total states",
+        TRACE_PLOT("Search/Progress/CurrentDepth",
+                   static_cast<int64_t>(current->depth));
+        TRACE_PLOT("Search/Progress/BestHeuristic",
+                   static_cast<int64_t>(stag.best_heuristic));
+
+        TRACE_PLOT("Search/Progress/StatesGenerated",
                    static_cast<int64_t>(total_states_generated));
+        TRACE_PLOT("Search/Progress/Steps", static_cast<int64_t>(steps));
     }
 
     std::cout << "\nNo se encontró solución." << std::endl;
@@ -82,7 +94,8 @@ Search::Path Search::findPath() {
     return Path{nullptr, 0};
 }
 
-Search::Path Search::reconstructPath(State *final_state) {
+Search::Path Search::reconstructPath(State *final_state,
+                                     unsigned int total_states) {
     TRACE_SCOPE;
     unsigned int length = 0;
     State *current = final_state;
@@ -205,10 +218,14 @@ void Search::generateRandomVariations(State *current, std::mt19937 &rng,
                 float acceptance_prob =
                     exp(-delta / (stag.temperature * 1000.0f));
                 accept = probability(rng) < acceptance_prob;
+                TRACE_PLOT("Search/Random/AcceptanceRate",
+                           static_cast<int64_t>(acceptance_prob * 100));
             }
 
             if (accept && (!closed_list.contains(new_state) ||
                            new_state->weight < stag.best_heuristic)) {
+                TRACE_PLOT("Search/Random/StatesAccepted",
+                           static_cast<int64_t>(accept ? 1 : 0));
                 // std::cout << "Aceptado" << std::endl;
                 open_list.push(new_state);
                 total_states_generated++;
@@ -220,6 +237,12 @@ void Search::generateRandomVariations(State *current, std::mt19937 &rng,
 
     // Enfriar la temperatura gradualmente
     stag.temperature *= stag.COOLING_RATE;
+    TRACE_PLOT("Search/Random/Temperature",
+               static_cast<int64_t>(stag.temperature * 100));
 
+    TRACE_PLOT("Search/Random/StatesGenerated", static_cast<int64_t>(1));
+
+    TRACE_PLOT("Search/Random/StepsSinceImprovement",
+               static_cast<int64_t>(stag.steps_since_last_improvement));
     delete[] new_jugs;
 }

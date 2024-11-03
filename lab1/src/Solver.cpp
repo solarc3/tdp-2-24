@@ -66,7 +66,6 @@ void Solver::solve() {
                         end_time - start_time)
                         .count();
 
-    // Handle solution results
     if (solution.length == 0) {
         std::cout << "No se encontro solucion\n";
     } else {
@@ -79,7 +78,7 @@ void Solver::solve() {
             }
             std::cout << "\n";
         }
-        TRACE_PLOT("Solution time (ms)", duration / 1000.0);
+        TRACE_PLOT("Solver/Performance/TimeMs", duration / 1000.0);
         std::cout << "Solution found in " << solution.length - 1 << " steps\n";
         std::cout << "Execution time: " << duration / 1000.0
                   << " milliseconds\n";

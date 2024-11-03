@@ -16,6 +16,9 @@ HashTable::~HashTable() {
 }
 
 bool HashTable::insert(State *state) {
+    TRACE_PLOT("HashTable/Stats/LoadFactor",
+               static_cast<int64_t>((float)size_ / capacity_ * 100));
+
     if (shouldResize()) {
         resize();
     }
@@ -53,7 +56,8 @@ bool HashTable::insert(State *state) {
 
         pos = (pos + 1) & (capacity_ - 1);
         psl++;
-
+        TRACE_PLOT("HashTable/Performance/PSL", static_cast<int64_t>(psl));
+        TRACE_PLOT("HashTable/Performance/Collisions", static_cast<int64_t>(1));
         // Si llegamos muy lejos, redimensionar
         if (psl >= 32) {
             resize();
@@ -63,26 +67,34 @@ bool HashTable::insert(State *state) {
 }
 
 bool HashTable::contains(const State *state) const {
+    TRACE_SCOPE;
+    TRACE_PLOT("HashTable/Size", static_cast<int64_t>(size_));
     unsigned int hash = computeHash(state);
     unsigned int pos = hash & (capacity_ - 1);
     unsigned int psl = 0;
-
     while (true) {
         if (!buckets_[pos].occupied) {
+            TRACE_PLOT("HashTable/Operations/Contains.notOccupied",
+                       static_cast<int64_t>(1));
             return false;
         }
 
         if (buckets_[pos].state->equals(state)) {
+            TRACE_PLOT("HashTable/Operations/Contains.Found",
+                       static_cast<int64_t>(1));
             return true;
         }
 
         if (psl > buckets_[pos].psl) {
+            TRACE_PLOT("HashTable/Operations/Contains.PSL",
+                       static_cast<int64_t>(psl));
             return false;
         }
 
         pos = (pos + 1) & (capacity_ - 1);
         psl++;
-
+        TRACE_PLOT("HashTable/Performance/LookupPSL",
+                   static_cast<int64_t>(psl));
         if (psl >= capacity_) {
             return false;
         }
@@ -102,6 +114,7 @@ void HashTable::cleanup() {
 }
 
 void HashTable::removeState(State *state) {
+    TRACE_SCOPE;
     unsigned int hash = computeHash(state);
     unsigned int pos = hash & (capacity_ - 1);
     unsigned int psl = 0;
@@ -140,6 +153,7 @@ void HashTable::removeState(State *state) {
 }
 
 unsigned int HashTable::computeHash(const State *state) const {
+    TRACE_SCOPE;
     unsigned int h = PRIME1;
 
     for (unsigned int i = 0; i < state->size; i++) {
@@ -170,6 +184,10 @@ bool HashTable::shouldResize() const {
 }
 
 void HashTable::resize() {
+    TRACE_SCOPE;
+    TRACE_PLOT("HashTable/Resize/NewCapacity",
+               static_cast<int64_t>(capacity_ * 2));
+    TRACE_PLOT("HashTable/Operations/Resize", static_cast<int64_t>(1));
     unsigned int old_capacity = capacity_;
     Bucket *old_buckets = buckets_;
 

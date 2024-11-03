@@ -16,18 +16,22 @@ void PairingHeap::push(State *state) {
         root_ = merge(root_, newNode);
     }
     size_++;
-    TRACE_PLOT("PairingHeap size", static_cast<int64_t>(size_));
+    TRACE_PLOT("Heap/Stats/Size", static_cast<int64_t>(size_));
+    TRACE_PLOT("Heap/Operations/Push", static_cast<int64_t>(1));
+    TRACE_PLOT("Heap/Values/Current", static_cast<int64_t>(state->weight));
+    TRACE_PLOT("Heap/Stats/MaxDepth", static_cast<int64_t>(state->depth));
 }
 
 State *PairingHeap::pop() {
     TRACE_SCOPE;
+    TRACE_PLOT("Heap/Values/Popped",
+               static_cast<int64_t>(root_->state->weight));
     if (!root_) {
         return nullptr;
     }
 
     Node *oldRoot = root_;
     State *result = oldRoot->state;
-
     if (root_->leftChild) {
         root_ = mergePairs(root_->leftChild);
         if (root_) {
@@ -39,7 +43,6 @@ State *PairingHeap::pop() {
 
     delete oldRoot;
     size_--;
-    TRACE_PLOT("PairingHeap size", static_cast<int64_t>(size_));
     return result;
 }
 
@@ -53,7 +56,7 @@ void PairingHeap::clear() {
     deleteTree(root_);
     root_ = nullptr;
     size_ = 0;
-    TRACE_PLOT("PairingHeap size", static_cast<int64_t>(0));
+    TRACE_PLOT("Heap/Stats/Size", static_cast<int64_t>(0));
 }
 
 bool PairingHeap::empty() const {
@@ -61,7 +64,8 @@ bool PairingHeap::empty() const {
     return root_ == nullptr;
 }
 
-// Helper function to merge two heaps
+int PairingHeap::size() const { return size_; }
+
 PairingHeap::Node *PairingHeap::merge(Node *h1, Node *h2) {
     TRACE_SCOPE;
     if (!h1)

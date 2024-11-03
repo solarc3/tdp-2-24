@@ -1,5 +1,4 @@
 #pragma once
-#include "../include/HeuristicMetrics.h"
 #include "../include/TracyMacros.h"
 #include "HashTable.h"
 #include "Heap.h"
@@ -12,6 +11,7 @@ class Search {
     struct Path {
         State **states;
         unsigned int length;
+        unsigned int total_states; // Agregar este campo
     };
 
     struct StagnationParams {
@@ -23,12 +23,9 @@ class Search {
         unsigned int stagnation_threshold;
         float temperature;
 
-        static const unsigned int DEFAULT_INTERVAL =
-            800; // Revisar más frecuentemente
-        static const unsigned int DEFAULT_RANDOM_STATES =
-            20; // Generar más estados aleatorios
-        static const unsigned int STAGNATION_LIMIT =
-            300; // Umbral de estancamiento
+        static const unsigned int DEFAULT_INTERVAL = 800;
+        static const unsigned int DEFAULT_RANDOM_STATES = 20;
+        static const unsigned int STAGNATION_LIMIT = 300;
         constexpr static const float INITIAL_TEMPERATURE = 1.0f;
         constexpr static const float COOLING_RATE = 0.995f;
 
@@ -52,7 +49,6 @@ class Search {
     Path findPath();
     static void freePath(Path &path);
 
-    private:
     // Miembros de clase
     const unsigned int *capacities;
     State *initial_state;
@@ -61,7 +57,7 @@ class Search {
     HashTable closed_list;
 
     // Funciones auxiliares
-    Path reconstructPath(State *final_state);
+    Path reconstructPath(State *final_state, unsigned int total_states);
     void generateRandomVariations(State *current, std::mt19937 &rng,
                                   unsigned int &total_states_generated,
                                   StagnationParams &stag);
