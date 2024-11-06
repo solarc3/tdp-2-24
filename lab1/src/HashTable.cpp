@@ -38,12 +38,12 @@ bool HashTable::insert(State *state) {
             return true;
         }
 
-        // Si encontramos un elemento existente igual, no insertamos
+        // elemento igual, no se agrega
         if (buckets_[pos].state->equals(state)) {
             return false;
         }
 
-        // Robin Hood - robar al rico
+        // Robin Hood Hashing - robar al rico
         if (psl > buckets_[pos].psl) {
             // swap
             State *temp_state = buckets_[pos].state;
@@ -60,7 +60,7 @@ bool HashTable::insert(State *state) {
         psl++;
         TRACE_PLOT("HashTable/Performance/PSL", static_cast<int64_t>(psl));
         TRACE_PLOT("HashTable/Performance/Collisions", static_cast<int64_t>(1));
-        // Si llegamos muy lejos, redimensionar
+        // si son muchas colisiones, redimensionar
         if (psl >= 8) {
             resize();
             return insert(state);
@@ -89,7 +89,7 @@ bool HashTable::contains(const State *state) const {
 
         if (psl > buckets_[pos].psl) {
             TRACE_PLOT("HashTable/Operations/Contains.PSL",
-                       static_cast<int64_t>(psl));
+                       static_cast<int64_t>(1));
             return false;
         }
 

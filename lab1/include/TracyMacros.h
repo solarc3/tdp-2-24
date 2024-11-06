@@ -7,6 +7,7 @@
     - se puede definir TRACY_ENABLE en el archivo de proyecto o un archivo para
    habilitar (aunque el make ya lo hace con make tracy)
 */
+
 #ifdef TRACY_ENABLE
 #include <Tracy/tracy/Tracy.hpp>
 #define TRACE_SCOPE ZoneScoped

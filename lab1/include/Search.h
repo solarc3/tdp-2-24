@@ -11,7 +11,6 @@ class Search {
     struct Path {
         State **states;
         unsigned int length;
-        unsigned int total_states;
     };
 
     struct StagnationParams {
@@ -32,8 +31,10 @@ class Search {
         constexpr static const float REHEAT_FACTOR = 1.5f;
 
         StagnationParams(unsigned int problem_size);
-        void updateAdaptiveParams(bool improved, float current_temp);
+        void updateAdaptiveParams(bool improved, float current_temp,
+                                  float size_factor);
         void updateTemperature(bool improved);
+        void updateWeights();
     };
 
     // Constructor y destructor
@@ -44,7 +45,6 @@ class Search {
     // Funciones principales
     Path findPath();
     static void freePath(Path &path);
-
     // Miembros de clase
     const unsigned int *capacities;
     State *initial_state;
@@ -55,7 +55,7 @@ class Search {
     private:
     // Funciones auxiliares
     Path reconstructPath(State *final_state, unsigned int total_states);
-    void generateRandomVariations(State *current, std::mt19937 &rng,
+    void generateRandomVariations(State *current, std::knuth_b &rng,
                                   unsigned int &total_states_generated,
                                   StagnationParams &stag);
 };

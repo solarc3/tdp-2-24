@@ -9,6 +9,7 @@ State::State() {
     this->parent = nullptr;
     this->heuristic_calculated = false;
 }
+
 State::AdaptiveParams::AdaptiveParams() {
     this->exploration_weight = 0.4f;
     this->balance_weight = 0.4f;
@@ -18,8 +19,6 @@ State::AdaptiveParams::AdaptiveParams() {
     this->plateaus = 0;
 }
 
-// Constructor con size, arreglo de jarras, profunidad, peso y padre
-// forma estandar de iniciar un estado
 State::State(unsigned int size, unsigned int *jugs, unsigned int depth,
              unsigned int weight, State *parent) {
     this->size = size;
@@ -45,7 +44,7 @@ void State::calculateHeuristic(const State &target_state) {
         unsigned int max_jug_size = 0;
         unsigned int matching_jugs = 0;
 
-        // Segmentación
+        // Segmentacion
         const unsigned int SEGMENT_SIZE = 8;
         unsigned int num_segments = (size + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
         unsigned int *segment_matches = new unsigned int[num_segments]();
@@ -70,47 +69,51 @@ void State::calculateHeuristic(const State &target_state) {
         float global_momentum =
             1.0f - (static_cast<float>(matching_jugs) / size);
 
-        // Calcular pesos para las tres estrategias basados en la profundidad
+        // Calcular pesos usando solo transiciones lineales
         float depth_ratio = std::min(1.0f, static_cast<float>(depth) / 60.0f);
-
-        // Pesos base para cada estrategia
         float strategy_weights[3];
 
-        // Exploración: mantenerla más tiempo
-        strategy_weights[0] = std::max(
-            0.3f, // Mínimo de exploración garantizado
-            adaptive_params.exploration_weight * (1.0f - (depth_ratio * 0.5f)));
+        // Exploracion: decae linealmente
+        strategy_weights[0] = std::max(0.25f, 0.6f * (1.0f - depth_ratio));
 
-        // Balance: hacerla más amplia y centrada más tarde
-        strategy_weights[1] = std::max(
-            0.2f, // Mínimo de balance garantizado
-            adaptive_params.balance_weight *
-                (1.0f -
-                 std::pow(static_cast<float>(depth_ratio - 0.6f), 2.0f)));
+        // Balance: se mantiene constante
+        strategy_weights[1] = 0.3f;
 
-        // Optimización: retrasarla y hacerla más gradual
-        strategy_weights[2] = std::max(
-            0.1f, // Mínimo de optimización garantizado
-            adaptive_params.optimization_weight *
-                (depth_ratio < 0.4f ? 0.0f : (depth_ratio - 0.4f) * 0.6f));
-
-        // Factor de adaptación basado en el tamaño del problema
-        float size_factor = std::min(1.0f, static_cast<float>(size) / 30.0f);
-
-        // Ajustar pesos basados en el rendimiento actual
-        if (adaptive_params.consecutive_improvements > 3) {
-            // Si estamos mejorando consistentemente, aumentar optimización
-            strategy_weights[2] *= (1.0f + size_factor * 0.2f);
-            strategy_weights[0] *= (1.0f - size_factor * 0.1f);
-        } else if (adaptive_params.plateaus > 2) {
-            // Si estamos estancados, aumentar exploración
-            strategy_weights[0] *= (1.0f + size_factor * 0.3f);
-            strategy_weights[2] *= (1.0f - size_factor * 0.15f);
-        }
+        // Optimizacion: crece linealmente
+        strategy_weights[2] = std::min(0.6f, 0.2f + (depth_ratio * 0.4f));
 
         // Normalizar pesos
         float sum =
             strategy_weights[0] + strategy_weights[1] + strategy_weights[2];
+        for (int i = 0; i < 3; i++) {
+            strategy_weights[i] /= sum;
+        }
+
+        // Factor de adaptacion simple basado en el tamaño del problema
+        float size_factor = std::min(1.0f, static_cast<float>(size) / 30.0f);
+
+        // Ajustes adaptativos simplificados
+        if (adaptive_params.consecutive_improvements > 3) {
+            // Aumentar optimizacion
+            float adjustment = 0.1f * size_factor;
+            strategy_weights[2] += adjustment;
+            strategy_weights[1] -= adjustment * 0.5f;
+            strategy_weights[0] -= adjustment * 0.5f;
+        } else if (adaptive_params.plateaus > 2) {
+            // Aumentar exploracion
+            float adjustment = 0.1f * size_factor;
+            strategy_weights[0] += adjustment;
+            strategy_weights[1] -= adjustment * 0.5f;
+            strategy_weights[2] -= adjustment * 0.5f;
+        }
+
+        // Asegurar mínimos y renormalizar
+        // TODO: quiza cambiar a un for de la suma de todos
+        strategy_weights[0] = std::max(0.2f, strategy_weights[0]);
+        strategy_weights[1] = std::max(0.2f, strategy_weights[1]);
+        strategy_weights[2] = std::max(0.2f, strategy_weights[2]);
+
+        sum = strategy_weights[0] + strategy_weights[1] + strategy_weights[2];
         for (int i = 0; i < 3; i++) {
             strategy_weights[i] /= sum;
         }
@@ -122,7 +125,7 @@ void State::calculateHeuristic(const State &target_state) {
         TRACE_PLOT("State/Weights/Optimization",
                    static_cast<int64_t>(strategy_weights[2] * 100));
 
-        // Segunda pasada: cálculo de valores con las tres estrategias
+        // Segunda pasada: cálculo de valores
         for (unsigned int i = 0; i < size; i++) {
             unsigned int segment = i / SEGMENT_SIZE;
             float segment_momentum =
@@ -133,13 +136,15 @@ void State::calculateHeuristic(const State &target_state) {
                 (global_momentum * 0.7f + segment_momentum * 0.3f);
 
             if (jugs[i] == target_state.jugs[i]) {
+                // mayor prioridad a las que estan a la izquierda
+                //  los ejemplos todos funcionan en ese orden, si se cambia esto
+                //  no sirve
                 float position_factor = 1.0f - (static_cast<float>(i) / size);
 
-                // Pattern value combinado de las tres estrategias
                 float pattern_boost =
-                    strategy_weights[0] * 35.0f + // Exploración
+                    strategy_weights[0] * 30.0f + // Exploracion
                     strategy_weights[1] * 25.0f + // Balance
-                    strategy_weights[2] * 15.0f;  // Optimización
+                    strategy_weights[2] * 20.0f;  // Optimizacion
 
                 pattern_value += static_cast<unsigned int>(
                     pattern_boost * (1.0f + position_factor * 0.5f));
@@ -153,11 +158,11 @@ void State::calculateHeuristic(const State &target_state) {
 
                 float transfer_factor =
                     strategy_weights[0] *
-                        (12.0f - (6.0f * combined_momentum)) + // Exploración
+                        (10.0f - (5.0f * combined_momentum)) + // Exploracion
                     strategy_weights[1] *
-                        (20.0f - (12.0f * combined_momentum)) + // Balance
+                        (20.0f - (10.0f * combined_momentum)) + // Balance
                     strategy_weights[2] *
-                        (28.0f - (18.0f * combined_momentum)); // Optimización
+                        (30.0f - (15.0f * combined_momentum)); // Optimizacion
 
                 transfer_value +=
                     static_cast<unsigned int>(operations * transfer_factor);
@@ -167,37 +172,20 @@ void State::calculateHeuristic(const State &target_state) {
         delete[] segment_matches;
         delete[] segment_max;
 
-        // Normalización con bonus
-        unsigned int pattern_max = static_cast<unsigned int>(size * 25 * 1.5f);
+        // Normalizacion simplificada
+        unsigned int pattern_max = static_cast<unsigned int>(size * 25);
         pattern_value =
             pattern_max > pattern_value ? pattern_max - pattern_value : 0;
 
-        // Penalización por profundidad adaptativa
-        float base_penalty = 0.1f + (0.1f * size_factor);
-
-        // Ajustar penalización basado en rendimiento
-        float performance_factor =
-            std::min(1.0f, adaptive_params.current_performance);
-
-        // Penalización combinada de las tres estrategias
+        // Penalizacion por profundidad simplificada
         float depth_penalty = std::min(
-            (base_penalty + (depth / (size * (2.5f + global_momentum * 3.5f))) *
-                                (strategy_weights[0] * 0.6f +   // Exploración
-                                 strategy_weights[1] * 1.0f +   // Balance
-                                 strategy_weights[2] * 1.4f)) * // Optimización
-                (1.0f + (performance_factor * size_factor * 0.2f)),
-            0.5f);
+            0.1f + (depth / (size * 3.0f)) * (0.8f + global_momentum), 0.5f);
 
-        // Peso final con las tres estrategias integradas
+        // Peso final simplificado
         weight = static_cast<unsigned int>(
-            transfer_value * (1.5f + global_momentum * 1.5f) +
-            pattern_value * (1.0f - depth_penalty * 0.7f) +
-            depth * depth_penalty *
-                (5.0f + 25.0f * global_momentum *
-                            (strategy_weights[0] * 0.8f + // Exploración
-                             strategy_weights[1] * 1.0f + // Balance
-                             strategy_weights[2] * 1.2f)  // Optimización
-                 ));
+            transfer_value * (1.5f + global_momentum) +
+            pattern_value * (1.0f - depth_penalty) +
+            depth * depth_penalty * (10.0f + 20.0f * global_momentum));
 
         // Tracing
         TRACE_PLOT("State/Heuristic/PatternValue",

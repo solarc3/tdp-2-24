@@ -22,7 +22,7 @@ water_jugs: $(OBJ_DIR)/State.o $(OBJ_DIR)/Search.o $(OBJ_DIR)/Heap.o $(OBJ_DIR)/
 water_jugs_tracy: $(OBJ_DIR)/State.o $(OBJ_DIR)/Search.o $(OBJ_DIR)/Heap.o $(OBJ_DIR)/HashTable.o $(OBJ_DIR)/Solver.o $(OBJ_DIR)/main.o
 	g++ ${FLAGS} $(OBJ_DIR)/*.o /usr/lib/libTracyClient.a -o water_jugs
 
-# Reglas de compilación para cada objeto
+# Reglas de compilacion para cada objeto
 $(OBJ_DIR)/main.o: src/main.cpp
 	g++ ${FLAGS} -I./include -c src/main.cpp -o $(OBJ_DIR)/main.o
 
@@ -40,6 +40,10 @@ $(OBJ_DIR)/HashTable.o: src/HashTable.cpp include/HashTable.h
 
 $(OBJ_DIR)/Solver.o: src/Solver.cpp include/Solver.h
 	g++ ${FLAGS} -I./include -c src/Solver.cpp -o $(OBJ_DIR)/Solver.o
+
+
+
+
 
 # Limpiar
 clean:

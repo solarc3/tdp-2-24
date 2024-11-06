@@ -27,8 +27,6 @@ class HashTable {
     // Getters pueden quedarse inline
     unsigned int size() const { return size_; }
     unsigned int capacity() const { return capacity_; }
-
-    private:
     Bucket *buckets_;
     unsigned int size_;
     unsigned int capacity_;
