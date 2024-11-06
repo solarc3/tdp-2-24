@@ -21,14 +21,11 @@ class Search {
         unsigned int best_heuristic;
         unsigned int stagnation_threshold;
         float temperature;
+        bool annealing_active;
 
-        static const unsigned int DEFAULT_INTERVAL = 800;
-        static const unsigned int DEFAULT_RANDOM_STATES = 20;
-        static const unsigned int STAGNATION_LIMIT = 300;
-        constexpr static const float INITIAL_TEMPERATURE = 5.0f;
-        constexpr static const float COOLING_RATE = 0.97f;
-        constexpr static const float MIN_TEMPERATURE = 0.01f;
-        constexpr static const float REHEAT_FACTOR = 1.5f;
+        static constexpr unsigned int DEFAULT_INTERVAL = 100;
+        static constexpr unsigned int STAGNATION_LIMIT = 1000;
+        static constexpr float INITIAL_TEMPERATURE = 1.0f;
 
         StagnationParams(unsigned int problem_size);
         void updateAdaptiveParams(bool improved, float current_temp,
@@ -36,7 +33,9 @@ class Search {
         void updateTemperature(bool improved);
         void updateWeights();
     };
-
+    void generateRandomVariations(State *current, std::knuth_b &rng,
+                                  unsigned int &total_states_generated,
+                                  StagnationParams &stag);
     // Constructor y destructor
     Search(State *initial_state, State *target_state,
            const unsigned int *capacities);
@@ -55,7 +54,4 @@ class Search {
     private:
     // Funciones auxiliares
     Path reconstructPath(State *final_state, unsigned int total_states);
-    void generateRandomVariations(State *current, std::knuth_b &rng,
-                                  unsigned int &total_states_generated,
-                                  StagnationParams &stag);
 };
