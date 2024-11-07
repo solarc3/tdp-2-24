@@ -6,10 +6,10 @@ inline void testHashTable() {
 
     HashTable *ht = new HashTable();
 
-    assert(ht->capacity() == HashTable::INITIAL_SIZE);
-    assert(ht->buckets_->occupied == false);
-    assert(ht->buckets_->state == nullptr);
-    assert(ht->buckets_->psl == 0);
+    assert(ht->capacity == HashTable::INITIAL_SIZE);
+    assert(ht->buckets->occupied == false);
+    assert(ht->buckets->state == nullptr);
+    assert(ht->buckets->psl == 0);
 
     unsigned int *test_jugs = new unsigned int[3]{4, 0, 0};
     State *test_state = new State(3, test_jugs, 0, 0, nullptr);

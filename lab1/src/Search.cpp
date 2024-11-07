@@ -11,13 +11,26 @@ Search::Search(State *initial_state, State *target_state,
 
 Search::~Search() {
     TRACE_SCOPE;
+    // Clear the open list without deleting initial or target states
     while (!open_list.empty()) {
         State *state = open_list.pop();
         if (state != initial_state && state != target_state) {
             delete state;
         }
     }
-    closed_list.cleanup();
+    HashTable::Bucket *buckets = closed_list.buckets;
+    for (unsigned int i = 0; i < closed_list.capacity; i++) {
+        if (buckets[i].occupied && buckets[i].state) {
+            if (buckets[i].state != initial_state &&
+                buckets[i].state != target_state) {
+                delete buckets[i].state;
+            }
+            buckets[i].state = nullptr;
+            buckets[i].occupied = false;
+            buckets[i].psl = 0;
+        }
+    }
+    closed_list.size = 0;
 }
 
 Search::Path Search::findPath() {
@@ -129,7 +142,8 @@ Search::Path Search::reconstructPath(State *final_state,
     int index = length - 1;
     while (current != nullptr) {
         path_states[index] = current;
-        closed_list.removeState(current);
+        if (current->parent != nullptr)
+            closed_list.removeState(current);
         current = current->parent;
         index--;
     }
@@ -163,8 +177,6 @@ void Search::generateRandomVariations(State *current, std::knuth_b &rng,
     std::uniform_real_distribution<float> probability(0.0f, 1.0f);
     std::uniform_int_distribution<unsigned int> op_type(0, 2);
     bool improved = false;
-    unsigned int escapes_attempted = 0;
-    unsigned int escapes_successful = 0;
 
     for (unsigned int i = 0; i < states_to_generate; i++) {
         std::memcpy(new_jugs, current->jugs,
@@ -234,7 +246,6 @@ void Search::generateRandomVariations(State *current, std::knuth_b &rng,
 
                 // Aquí es donde intentamos escapar de mínimos locales
                 if (relative_delta < 0.2f) {
-                    escapes_attempted++;
                     float acceptance_prob =
                         std::exp(-relative_delta / (stag.temperature * 0.1f));
                     accept = probability(rng) < acceptance_prob;
@@ -249,46 +260,29 @@ void Search::generateRandomVariations(State *current, std::knuth_b &rng,
             }
         }
     }
-    /*
-    std::cout << "\n=== Resumen de escapes de mínimos locales ===\n";
-    std::cout << "Intentos de escape: " << escapes_attempted << "\n";
-    std::cout << "Escapes exitosos: " << escapes_successful << "\n";
-    std::cout << "Temperatura: " << stag.temperature << "\n";
-    std::cout << "Pasos sin mejora: " << stag.steps_since_last_improvement
-              << "\n";
-    if (stag.steps_since_last_improvement > stag.stagnation_threshold) {
-        std::cout << "ADVERTENCIA: Estancamiento prolongado detectado\n";
-    }
-    std::cout << "=====================================\n\n";
-    */
     stag.updateAdaptiveParams(improved, stag.temperature, 1.0f);
     delete[] new_jugs;
 }
 Search::StagnationParams::StagnationParams(unsigned int problem_size) {
     steps_since_last_improvement = 0;
     steps_since_last_random = 0;
-    random_check_interval = 50;                                // Más frecuente
-    random_states_per_check = std::min(problem_size * 2, 10u); // Limitado
+    random_check_interval = 50;
+    random_states_per_check = std::min(problem_size * 2, 10u);
     best_heuristic = UINT_MAX;
-    stagnation_threshold = 500; // Más agresivo
+    stagnation_threshold = 500;
     temperature = 1.0f;
     annealing_active = false;
 }
 
 void Search::StagnationParams::updateTemperature(bool improved) {
     if (improved) {
-        // Enfriamiento más rápido cuando hay mejora
-        temperature *= 0.95f;
+        temperature *= 0.93f;
     } else if (steps_since_last_improvement > stagnation_threshold) {
-        // Recalentamiento más moderado
-        temperature = std::min(temperature * 1.3f, INITIAL_TEMPERATURE);
+        temperature = std::min(temperature * 1.5f, INITIAL_TEMPERATURE);
     } else {
-        // Enfriamiento normal más agresivo
         temperature *= 0.97f;
     }
-
-    // Límite mínimo más alto para mantener algo de exploracion
-    temperature = std::max(temperature, 0.05f);
+    temperature = std::max(temperature, 0.1f);
 }
 
 void Search::StagnationParams::updateAdaptiveParams(bool improved,

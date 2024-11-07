@@ -24,12 +24,9 @@ class HashTable {
     void cleanup();
     void removeState(State *state);
 
-    // Getters pueden quedarse inline
-    unsigned int size() const { return size_; }
-    unsigned int capacity() const { return capacity_; }
-    Bucket *buckets_;
-    unsigned int size_;
-    unsigned int capacity_;
+    Bucket *buckets;
+    unsigned int size;
+    unsigned int capacity;
 
     unsigned int computeHash(const State *state) const;
     bool shouldResize() const;

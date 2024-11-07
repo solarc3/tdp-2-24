@@ -1,4 +1,5 @@
 #include "../include/HashTable.h"
+#include <cassert>
 
 HashTable::Bucket::Bucket() {
     this->state = nullptr;
@@ -7,171 +8,170 @@ HashTable::Bucket::Bucket() {
 }
 
 HashTable::HashTable() {
-    this->size_ = 0;
-    this->capacity_ = INITIAL_SIZE;
-    buckets_ = new Bucket[capacity_];
+    this->size = 0;
+    this->capacity = INITIAL_SIZE;
+    this->buckets = new Bucket[capacity]();
 }
 
 HashTable::~HashTable() {
-    cleanup();
-    delete[] buckets_;
+    if (buckets) {
+        cleanup();
+        delete[] buckets;
+        buckets = nullptr;
+    }
 }
 
 bool HashTable::insert(State *state) {
-    TRACE_PLOT("HashTable/Stats/LoadFactor",
-               static_cast<int64_t>((float)size_ / capacity_ * 100));
+    if (!state || !buckets)
+        return false;
 
     if (shouldResize()) {
         resize();
     }
 
     unsigned int hash = computeHash(state);
-    unsigned int pos = hash & (capacity_ - 1);
+    unsigned int pos = hash & (capacity - 1);
     unsigned int psl = 0;
 
+    State *current_state = state;
+    unsigned int current_psl = psl;
+
     while (true) {
-        if (!buckets_[pos].occupied) {
-            buckets_[pos].state = state;
-            buckets_[pos].psl = psl;
-            buckets_[pos].occupied = true;
-            size_++;
+        if (!buckets[pos].occupied) {
+            buckets[pos].state = current_state;
+            buckets[pos].psl = current_psl;
+            buckets[pos].occupied = true;
+            size++;
             return true;
         }
-
-        // elemento igual, no se agrega
-        if (buckets_[pos].state->equals(state)) {
+        if (buckets[pos].state && buckets[pos].state->equals(state)) {
             return false;
         }
 
-        // Robin Hood Hashing - robar al rico
-        if (psl > buckets_[pos].psl) {
-            // swap
-            State *temp_state = buckets_[pos].state;
-            unsigned int temp_psl = buckets_[pos].psl;
-
-            buckets_[pos].state = state;
-            buckets_[pos].psl = psl;
-
-            state = temp_state;
-            psl = temp_psl;
+        // Robin Hood Hashing
+        if (current_psl > buckets[pos].psl) {
+            std::swap(current_state, buckets[pos].state);
+            std::swap(current_psl, buckets[pos].psl);
         }
 
-        pos = (pos + 1) & (capacity_ - 1);
-        psl++;
-        TRACE_PLOT("HashTable/Performance/PSL", static_cast<int64_t>(psl));
-        TRACE_PLOT("HashTable/Performance/Collisions", static_cast<int64_t>(1));
-        // si son muchas colisiones, redimensionar
-        if (psl >= 8) {
+        pos = (pos + 1) & (capacity - 1);
+        current_psl++;
+
+        if (current_psl >= 8) {
             resize();
-            return insert(state);
+            return insert(current_state);
         }
     }
 }
 
 bool HashTable::contains(const State *state) const {
-    TRACE_SCOPE;
-    TRACE_PLOT("HashTable/Size", static_cast<int64_t>(size_));
+    if (!state || !buckets)
+        return false;
+
     unsigned int hash = computeHash(state);
-    unsigned int pos = hash & (capacity_ - 1);
+    unsigned int pos = hash & (capacity - 1);
     unsigned int psl = 0;
+
     while (true) {
-        if (!buckets_[pos].occupied) {
-            TRACE_PLOT("HashTable/Operations/Contains.notOccupied",
-                       static_cast<int64_t>(1));
+        if (!buckets[pos].occupied) {
             return false;
         }
 
-        if (buckets_[pos].state->equals(state)) {
-            TRACE_PLOT("HashTable/Operations/Contains.Found",
-                       static_cast<int64_t>(1));
+        if (buckets[pos].state && buckets[pos].state->equals(state)) {
             return true;
         }
 
-        if (psl > buckets_[pos].psl) {
-            TRACE_PLOT("HashTable/Operations/Contains.PSL",
-                       static_cast<int64_t>(1));
+        if (psl > buckets[pos].psl) {
             return false;
         }
 
-        pos = (pos + 1) & (capacity_ - 1);
+        pos = (pos + 1) & (capacity - 1);
         psl++;
-        TRACE_PLOT("HashTable/Performance/LookupPSL",
-                   static_cast<int64_t>(psl));
-        if (psl >= capacity_) {
+
+        if (psl >= capacity) {
             return false;
         }
     }
 }
 
 void HashTable::cleanup() {
-    for (unsigned int i = 0; i < capacity_; i++) {
-        if (buckets_[i].occupied && buckets_[i].state) {
-            delete buckets_[i].state;
-            buckets_[i].state = nullptr;
-            buckets_[i].occupied = false;
-            buckets_[i].psl = 0;
+    if (!buckets)
+        return;
+
+    for (unsigned int i = 0; i < capacity; i++) {
+        if (buckets[i].occupied && buckets[i].state) {
+            delete buckets[i].state;
+            buckets[i].state = nullptr;
+            buckets[i].occupied = false;
+            buckets[i].psl = 0;
         }
     }
-    size_ = 0;
+    size = 0;
 }
 
 void HashTable::removeState(State *state) {
-    TRACE_SCOPE;
+    if (!state || !buckets)
+        return;
+
     unsigned int hash = computeHash(state);
-    unsigned int pos = hash & (capacity_ - 1);
+    unsigned int pos = hash & (capacity - 1);
     unsigned int psl = 0;
 
     while (true) {
-        if (!buckets_[pos].occupied) {
+        if (!buckets[pos].occupied) {
             return;
         }
 
-        if (buckets_[pos].state->equals(state)) {
-            // Encontrado - backward-shift deletion
+        if (buckets[pos].state && buckets[pos].state->equals(state)) {
+            // Found the state - perform backward-shift deletion
             unsigned int current = pos;
-            unsigned int next = (current + 1) & (capacity_ - 1);
+            unsigned int next = (current + 1) & (capacity - 1);
 
-            while (buckets_[next].occupied && buckets_[next].psl > 0) {
-                buckets_[current] = buckets_[next];
-                buckets_[current].psl--;
+            while (buckets[next].occupied && buckets[next].psl > 0) {
+                buckets[current] = buckets[next];
+                buckets[current].psl--;
                 current = next;
-                next = (current + 1) & (capacity_ - 1);
+                next = (current + 1) & (capacity - 1);
             }
 
-            buckets_[current].occupied = false;
-            buckets_[current].state = nullptr;
-            buckets_[current].psl = 0;
-            size_--;
+            buckets[current].occupied = false;
+            buckets[current].state = nullptr;
+            buckets[current].psl = 0;
+            size--;
             return;
         }
 
-        if (psl > buckets_[pos].psl) {
+        if (psl > buckets[pos].psl) {
             return;
         }
 
-        pos = (pos + 1) & (capacity_ - 1);
+        pos = (pos + 1) & (capacity - 1);
         psl++;
+
+        if (psl >= capacity) {
+            return;
+        }
     }
 }
 
 unsigned int HashTable::computeHash(const State *state) const {
-    TRACE_SCOPE;
+    if (!state || !state->jugs)
+        return 0;
+
     unsigned int h = PRIME1;
 
     for (unsigned int i = 0; i < state->size; i++) {
         unsigned int k = state->jugs[i];
 
-        // bit mixing
         k *= PRIME2;
-        k = (k << 23) | (k >> 9); // rotate
+        k = (k << 23) | (k >> 9);
         k *= PRIME3;
 
         h ^= k;
-        h = (h << 17) | (h >> 15); // rotate
+        h = (h << 17) | (h >> 15);
         h += h << 3;
     }
 
-    // Finalizer
     h ^= h >> 16;
     h *= PRIME2;
     h ^= h >> 13;
@@ -182,23 +182,18 @@ unsigned int HashTable::computeHash(const State *state) const {
 }
 
 bool HashTable::shouldResize() const {
-    return (static_cast<float>(size_) / capacity_) >= MAX_LOAD_FACTOR;
+    return (static_cast<float>(size) / capacity) >= MAX_LOAD_FACTOR;
 }
 
 void HashTable::resize() {
-    TRACE_SCOPE;
-    TRACE_PLOT("HashTable/Resize/NewCapacity",
-               static_cast<int64_t>(capacity_ * 2));
-    TRACE_PLOT("HashTable/Operations/Resize", static_cast<int64_t>(1));
-    unsigned int old_capacity = capacity_;
-    Bucket *old_buckets = buckets_;
+    if (!buckets)
+        return;
 
-    // Duplicar capacidad
-    capacity_ *= 2;
-    buckets_ = new Bucket[capacity_];
-    size_ = 0;
-
-    // Rehash
+    unsigned int old_capacity = capacity;
+    Bucket *old_buckets = buckets;
+    capacity *= 2;
+    buckets = new Bucket[capacity]();
+    size = 0;
     for (unsigned int i = 0; i < old_capacity; i++) {
         if (old_buckets[i].occupied && old_buckets[i].state) {
             insert(old_buckets[i].state);

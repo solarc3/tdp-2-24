@@ -179,8 +179,13 @@ void State::calculateHeuristic(const State &target_state) {
 
         // Penalizacion por profundidad simplificada
         float depth_penalty = std::min(
-            0.1f + (depth / (size * 3.0f)) * (0.8f + global_momentum), 0.5f);
-
+            0.1f + (depth / (size * 3.0f)) * (0.8f + global_momentum), 0.3f);
+        /*float depth_penalty = std::min(
+            0.2f + (depth / (size * 2.0f)) * (1.0f + global_momentum), 0.7f);*/
+        /*if (depth > 100) {
+            depth_penalty +=
+                (depth - 100) / 200.0f; // Aumenta 0.5% cada 100 niveles
+                }*/
         // Peso final simplificado
         weight = static_cast<unsigned int>(
             transfer_value * (1.5f + global_momentum) +

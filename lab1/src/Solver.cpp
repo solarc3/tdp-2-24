@@ -75,7 +75,7 @@ void Solver::solve() {
         std::cout << "\nSecuencia de estados:\n";
         for (unsigned int i = 0; i < solution.length; i++) {
             if (!solution.states[i])
-                continue; // Skip null states
+                continue;
             for (unsigned int j = 0; j < solution.states[i]->size; j++) {
                 std::cout << solution.states[i]->jugs[j] << " ";
             }
@@ -92,7 +92,7 @@ void Solver::solve() {
 
 void Solver::printCurrentStates() const {
     if (!initialized) {
-        std::cout << "Estados no inicializados\n";
+        std::cout << "Algun estado no  esta inicializado\n";
         return;
     }
 

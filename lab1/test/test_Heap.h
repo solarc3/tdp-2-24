@@ -4,7 +4,7 @@
 inline void testHeap() {
     PairingHeap *heap = new PairingHeap();
     assert(heap->empty());
-    assert(heap->size() == PairingHeap::INITIAL_CAPACITY);
+    assert(heap->size == PairingHeap::INITIAL_CAPACITY);
 
     // agregar elementos con distinto peso para ver si se ordenan por prioridad
     // al sacarlos
@@ -15,7 +15,7 @@ inline void testHeap() {
     heap->push(s2);
     heap->push(s3);
     // ver size y si s2 quedo como punta
-    assert(heap->size() == 3);
+    assert(heap->size == 3);
     assert(heap->peek() == s2);
     // eliminar en orden de peso
     assert(heap->pop() == s2);

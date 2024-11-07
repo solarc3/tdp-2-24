@@ -22,11 +22,9 @@ class PairingHeap {
     State *peek() const;
     void clear();
     bool empty() const;
-    int size() const;
 
-    private:
-    Node *root_;
-    int size_;
+    Node *root;
+    int size;
 
     Node *merge(Node *h1, Node *h2);
     Node *mergePairs(Node *firstSibling);

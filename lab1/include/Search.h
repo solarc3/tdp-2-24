@@ -50,8 +50,7 @@ class Search {
     State *target_state;
     PairingHeap open_list;
     HashTable closed_list;
+    void cleanupOldStates(unsigned int current_depth);
 
-    private:
-    // Funciones auxiliares
     Path reconstructPath(State *final_state, unsigned int total_states);
 };

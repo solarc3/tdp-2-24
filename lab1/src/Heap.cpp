@@ -2,8 +2,8 @@
 
 PairingHeap::PairingHeap() {
     TRACE_SCOPE;
-    this->root_ = nullptr;
-    this->size_ = 0;
+    this->root = nullptr;
+    this->size = 0;
 }
 PairingHeap::Node::Node(State *s) {
     this->state = s;
@@ -22,13 +22,13 @@ bool PairingHeap::hasHigherPriority(const State *a, const State *b) {
 void PairingHeap::push(State *state) {
     TRACE_SCOPE;
     Node *newNode = new Node(state);
-    if (!root_) {
-        root_ = newNode;
+    if (!root) {
+        root = newNode;
     } else {
-        root_ = merge(root_, newNode);
+        root = merge(root, newNode);
     }
-    size_++;
-    TRACE_PLOT("Heap/Stats/Size", static_cast<int64_t>(size_));
+    size++;
+    TRACE_PLOT("Heap/Stats/Size", static_cast<int64_t>(size));
     TRACE_PLOT("Heap/Operations/Push", static_cast<int64_t>(1));
     TRACE_PLOT("Heap/Values/Current", static_cast<int64_t>(state->weight));
     TRACE_PLOT("Heap/Stats/MaxDepth", static_cast<int64_t>(state->depth));
@@ -36,48 +36,44 @@ void PairingHeap::push(State *state) {
 
 State *PairingHeap::pop() {
     TRACE_SCOPE;
-    TRACE_PLOT("Heap/Values/Popped",
-               static_cast<int64_t>(root_->state->weight));
-    if (!root_) {
+    TRACE_PLOT("Heap/Values/Popped", static_cast<int64_t>(root->state->weight));
+    if (!root) {
         return nullptr;
     }
 
-    Node *oldRoot = root_;
+    Node *oldRoot = root;
     State *result = oldRoot->state;
-    if (root_->leftChild) {
-        root_ = mergePairs(root_->leftChild);
-        if (root_) {
-            root_->prev = nullptr;
+    if (root->leftChild) {
+        root = mergePairs(root->leftChild);
+        if (root) {
+            root->prev = nullptr;
         }
     } else {
-        root_ = nullptr;
+        root = nullptr;
     }
 
     delete oldRoot;
-    size_--;
+    size--;
     return result;
 }
 
 State *PairingHeap::peek() const {
     TRACE_SCOPE;
-    return root_ ? root_->state : nullptr;
+    return root ? root->state : nullptr;
 }
 
 void PairingHeap::clear() {
     TRACE_SCOPE;
-    deleteTree(root_);
-    root_ = nullptr;
-    size_ = 0;
+    deleteTree(root);
+    root = nullptr;
+    size = 0;
     TRACE_PLOT("Heap/Stats/Size", static_cast<int64_t>(0));
 }
 
 bool PairingHeap::empty() const {
     TRACE_SCOPE;
-    return root_ == nullptr;
+    return root == nullptr;
 }
-
-int PairingHeap::size() const { return size_; }
-
 PairingHeap::Node *PairingHeap::merge(Node *h1, Node *h2) {
     TRACE_SCOPE;
     if (!h1)
@@ -123,10 +119,7 @@ PairingHeap::Node *PairingHeap::mergePairs(Node *firstSibling) {
         return merged;
     }
 
-    // Recursively merge the rest
     Node *temp = mergePairs(rest);
-
-    // Merge the results
     return merge(merged, temp);
 }
 
@@ -134,13 +127,9 @@ void PairingHeap::deleteTree(Node *node) {
     TRACE_SCOPE;
     if (!node)
         return;
-
-    // Delete siblings first
     if (node->nextSibling) {
         deleteTree(node->nextSibling);
     }
-
-    // Delete children
     if (node->leftChild) {
         deleteTree(node->leftChild);
     }
