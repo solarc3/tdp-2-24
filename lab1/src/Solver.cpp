@@ -1,8 +1,4 @@
 #include "../include/Solver.h"
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
-using namespace __gnu_pbds;
-gp_hash_table<int, int> table;
 
 Solver::Solver() {
     initialized = false;
@@ -14,10 +10,11 @@ Solver::~Solver() { cleanup(); }
 
 void Solver::cleanup() {
     delete max_state;
+    delete target_state;
     max_state = nullptr;
     target_state = nullptr;
+    initialized = false;
 }
-
 bool Solver::initializeFromFile(const std::string &filename) {
     TRACE_SCOPE;
     cleanup();

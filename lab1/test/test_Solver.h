@@ -11,12 +11,26 @@ inline std::string createTestFile() {
 }
 
 inline void testSolver() {
-    Solver *solver = new Solver;
-    std::string test_filename = createTestFile();
-    assert(solver->initializeFromFile(test_filename));
-    assert(solver->isInitialized());
-    // archivo prueba y ver si soluciona
-    solver->solve();
-    delete solver;
-    std::remove(test_filename.c_str());
-};
+    Solver *solver = nullptr;
+    std::string test_filename;
+
+    try {
+        solver = new Solver();
+        test_filename = createTestFile();
+
+        assert(solver->initializeFromFile(test_filename));
+        assert(solver->isInitialized());
+
+        solver->solve();
+
+        delete solver;
+        std::remove(test_filename.c_str());
+
+    } catch (...) {
+        delete solver;
+        if (!test_filename.empty()) {
+            std::remove(test_filename.c_str());
+        }
+        throw;
+    }
+}

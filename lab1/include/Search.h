@@ -51,6 +51,9 @@ class Search {
     PairingHeap open_list;
     HashTable closed_list;
     void cleanupOldStates(unsigned int current_depth);
-
+    void cleanupSuccessors(State **successors, unsigned int num_successors);
     Path reconstructPath(State *final_state, unsigned int total_states);
+    void cleanUpStates();
+    void cleanUpState(State *state);
+    bool isSpecialState(State *state) const;
 };

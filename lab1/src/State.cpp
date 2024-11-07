@@ -215,60 +215,83 @@ State **State::generateSuccessors(const unsigned int *capacities,
                                   unsigned int &num_successors) const {
     TRACE_SCOPE;
     unsigned int max_successors = size * ((size - 1) + 2);
-    State **successors = new State *[max_successors];
-    num_successors = 0;
-    unsigned int *new_jugs = new unsigned int[size];
-    memcpy(new_jugs, jugs, size * sizeof(unsigned int));
+    State **successors = nullptr;
+    unsigned int *new_jugs = nullptr;
 
-    for (unsigned int i = 0; i < size; i++) {
-        unsigned int original_i = new_jugs[i];
+    try {
+        successors = new State *[max_successors]();
+        new_jugs = new unsigned int[size];
 
-        // jarra i a distintas jarras j
-        for (unsigned int j = 0; j < size; j++) {
-            if (i == j || new_jugs[i] == 0 || new_jugs[j] == capacities[j])
-                continue;
+        memcpy(new_jugs, jugs, size * sizeof(unsigned int));
 
-            unsigned int transfer_amount =
-                (new_jugs[i] < capacities[j] - new_jugs[j])
-                    ? new_jugs[i]
-                    : capacities[j] - new_jugs[j];
-            if (transfer_amount > 0) {
-                new_jugs[i] -= transfer_amount;
-                new_jugs[j] += transfer_amount;
+        num_successors = 0;
 
-                successors[num_successors++] = new State(
+        for (unsigned int i = 0; i < size; i++) {
+            unsigned int original_i = new_jugs[i];
+
+            // Transfer operations
+            for (unsigned int j = 0; j < size; j++) {
+                if (i == j || new_jugs[i] == 0 ||
+                    new_jugs[j] == capacities[j]) {
+                    continue;
+                }
+
+                unsigned int space_available = capacities[j] - new_jugs[j];
+                unsigned int transfer_amount = (new_jugs[i] < space_available)
+                                                   ? new_jugs[i]
+                                                   : space_available;
+
+                if (transfer_amount > 0) {
+                    new_jugs[i] -= transfer_amount;
+                    new_jugs[j] += transfer_amount;
+                    successors[num_successors] =
+                        new State(size, new_jugs, depth + 1, 0,
+                                  const_cast<State *>(this));
+                    num_successors++;
+
+                    new_jugs[i] = original_i;
+                    new_jugs[j] = jugs[j];
+                }
+            }
+
+            // Fill operation
+            if (new_jugs[i] < capacities[i]) {
+                new_jugs[i] = capacities[i];
+                successors[num_successors] = new State(
                     size, new_jugs, depth + 1, 0, const_cast<State *>(this));
-
-                // siguiente iteracion
+                num_successors++;
                 new_jugs[i] = original_i;
-                new_jugs[j] = jugs[j];
+            }
+
+            // Empty operation
+            if (new_jugs[i] > 0) {
+                new_jugs[i] = 0;
+
+                successors[num_successors] = new State(
+                    size, new_jugs, depth + 1, 0, const_cast<State *>(this));
+                num_successors++;
+
+                new_jugs[i] = original_i;
             }
         }
+        delete[] new_jugs;
+        new_jugs = nullptr;
+        return successors;
 
-        // llenar jarras
-        if (new_jugs[i] < capacities[i]) {
-            new_jugs[i] = capacities[i];
-            successors[num_successors++] = new State(
-                size, new_jugs, depth + 1, 0, const_cast<State *>(this));
-            new_jugs[i] = original_i;
+    } catch (...) {
+        if (successors) {
+            for (unsigned int i = 0; i < num_successors; i++) {
+                delete successors[i];
+            }
+            delete[] successors;
+            successors = nullptr;
         }
-
-        // vaciar jarras
-        if (new_jugs[i] > 0) {
-            new_jugs[i] = 0;
-            successors[num_successors++] = new State(
-                size, new_jugs, depth + 1, 0, const_cast<State *>(this));
-            new_jugs[i] = original_i;
+        if (new_jugs) {
+            delete[] new_jugs;
+            new_jugs = nullptr;
         }
+        throw;
     }
-    TRACE_PLOT("State/Successors/Count", static_cast<int64_t>(num_successors));
-    TRACE_PLOT("State/Successors/MaxPossible",
-               static_cast<int64_t>(max_successors));
-    TRACE_PLOT("State/Operations/Transfers", static_cast<int64_t>(1));
-    TRACE_PLOT("State/Operations/Fills", static_cast<int64_t>(1));
-    TRACE_PLOT("State/Operations/Empties", static_cast<int64_t>(1));
-    delete[] new_jugs;
-    return successors;
 }
 
 void State::printState(const char *label) {
