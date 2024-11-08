@@ -13,6 +13,11 @@ Search::~Search() {
     TRACE_SCOPE;
     cleanUpStates();
 }
+// Buscador de soluciones del open desde el estado inicial
+// Considerar ademas el agregado del sistema de stagnation para evitar
+// localidades y ademas la randomizacion de estados por parte del Simulated
+// annealing
+//
 Search::Path Search::findPath() {
     TRACE_SCOPE;
     open_list.push(initial_state);
@@ -113,7 +118,7 @@ Search::Path Search::findPath() {
         throw;
     }
 }
-
+// Reconstruir camino en base a los punteros dados por el estado final
 Search::Path Search::reconstructPath(State *final_state,
                                      unsigned int total_states) {
     TRACE_SCOPE;
@@ -156,7 +161,8 @@ void Search::freePath(Path &path) {
         path.length = 0;
     }
 }
-
+// generacion random de estados siguientes para evitar localidades, se utilizan
+// generadores en conjunto a la metahuristica de simulated annealing
 void Search::generateRandomVariations(State *current, std::knuth_b &rng,
                                       unsigned int &total_states_generated,
                                       StagnationParams &stag) {
@@ -183,9 +189,11 @@ void Search::generateRandomVariations(State *current, std::knuth_b &rng,
             bool valid_sequence = false;
 
             while (!valid_sequence && attempts < 3) {
+                // ver que hacer siguiente
                 unsigned int operation = op_type(rng);
 
                 switch (operation) {
+                        // operaciones random tbm
                     case 0: { // Transfer
                         unsigned int from = rng() % current->size;
                         unsigned int to = rng() % current->size;
@@ -233,18 +241,20 @@ void Search::generateRandomVariations(State *current, std::knuth_b &rng,
 
                     bool accept = false;
                     if (new_state->weight < stag.best_heuristic) {
+                        // si el peso es menor, es algo mejor, no deberia
+                        // suceder nunca este caso
                         accept = true;
                         stag.best_heuristic = new_state->weight;
                         stag.steps_since_last_improvement = 0;
                         improved = true;
-                        std::cout << "¡MEJORA! " << new_state->weight << " < "
-                                  << stag.best_heuristic << "\n";
                     } else {
+                        // sino, se utiliza para escapar minimos locales
                         float delta = static_cast<float>(new_state->weight -
                                                          current->weight);
                         float relative_delta = delta / current->weight;
 
                         // Try to escape local minima
+                        // criterio de metropolis
                         if (relative_delta < 0.2f) {
                             float acceptance_prob = std::exp(
                                 -relative_delta / (stag.temperature * 0.1f));
@@ -260,41 +270,35 @@ void Search::generateRandomVariations(State *current, std::knuth_b &rng,
                         new_state = nullptr;
                     }
                 } catch (...) {
-                    delete new_state; // Clean up if exception during creation
+                    delete new_state; // cleanup
                     throw;
                 }
             }
         }
 
-        stag.updateAdaptiveParams(improved, stag.temperature, 1.0f);
+        stag.updateAdaptiveParams(
+            improved, stag.temperature,
+            1.0f); // update adaptacion del sistema, temperatura changes
         delete[] new_jugs;
     } catch (...) {
-        delete[] new_jugs; // Ensure cleanup even if exception occurs
+        delete[] new_jugs;
         throw;
     }
 }
+// defauilt constructor para los parametros de stagnation
 Search::StagnationParams::StagnationParams(unsigned int problem_size) {
     steps_since_last_improvement = 0;
     steps_since_last_random = 0;
     random_check_interval = 50;
     random_states_per_check = std::min(problem_size * 2, 10u);
-    best_heuristic = UINT_MAX;
+    best_heuristic = 0;
     stagnation_threshold = 500;
     temperature = 1.0f;
     annealing_active = false;
 }
 
-void Search::StagnationParams::updateTemperature(bool improved) {
-    if (improved) {
-        temperature *= 0.93f;
-    } else if (steps_since_last_improvement > stagnation_threshold) {
-        temperature = std::min(temperature * 1.5f, INITIAL_TEMPERATURE);
-    } else {
-        temperature *= 0.97f;
-    }
-    temperature = std::max(temperature, 0.1f);
-}
-
+// actualizacion de temperatura, se cambia en base si se mejoro o no lo que se
+// encuentra, esto permite flexibilizar la busqueda
 void Search::StagnationParams::updateAdaptiveParams(bool improved,
                                                     float current_temp,
                                                     float size_factor) {
@@ -315,7 +319,8 @@ void Search::StagnationParams::updateAdaptiveParams(bool improved,
     temperature = std::max(temperature, 0.05f);
     updateWeights();
 }
-
+// ademas, se actualizan los pesos de cada una de las 3 estrategias de busqueda
+// aqui es donde se conectan ambos sistemas
 void Search::StagnationParams::updateWeights() {
     float temp_factor = temperature / INITIAL_TEMPERATURE;
     State::adaptive_params.exploration_weight =

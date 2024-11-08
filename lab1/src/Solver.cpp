@@ -47,7 +47,7 @@ void Solver::solve() {
     std::cout << "\nStates actuales antes de resolver:\n";
     printCurrentStates();
 
-    // Create initial state
+    // estado inicial
     State *start_state = new State();
     start_state->size = max_state->size;
     start_state->jugs = new unsigned int[max_state->size];
@@ -55,7 +55,7 @@ void Solver::solve() {
         start_state->jugs[i] = 0;
     }
 
-    // Create search and solve
+    // buscar y solve
     Search search(start_state, target_state, max_state->jugs);
 
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -89,7 +89,7 @@ void Solver::solve() {
 
 void Solver::printCurrentStates() const {
     if (!initialized) {
-        std::cout << "Algun estado no  esta inicializado\n";
+        std::cout << "Algun estado no esta inicializado\n";
         return;
     }
 

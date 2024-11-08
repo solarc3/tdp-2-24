@@ -36,6 +36,13 @@ bool State::equals(const State *other) const {
     TRACE_SCOPE;
     return memcmp(jugs, other->jugs, size * sizeof(unsigned int)) == 0;
 }
+// Calculo de heuristicas ponderado por profunidad momentum, tamano y peso
+// Se deciden ademas 2 heuristicas ponderadas por cada una de las 3 estrategias
+// distintas, para cambiar como actuan dentro del algoritmo Se calcula el
+// momentum global, y se pondera por segmento Se calcula el peso de cada
+// estrategia, y se pondera por el tamano del problema Se ajustan los pesos en
+// base a la performance del algoritmo Se asegura que almenos una estrategia
+// tenga un peso Se normalizan los pesos y se pondera todo como un total
 void State::calculateHeuristic(const State &target_state) {
     TRACE_SCOPE;
     if (!heuristic_calculated) {
@@ -44,13 +51,13 @@ void State::calculateHeuristic(const State &target_state) {
         unsigned int max_jug_size = 0;
         unsigned int matching_jugs = 0;
 
-        // Segmentacion
+        // segmentacion
         const unsigned int SEGMENT_SIZE = 8;
         unsigned int num_segments = (size + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
         unsigned int *segment_matches = new unsigned int[num_segments]();
         unsigned int *segment_max = new unsigned int[num_segments]();
 
-        // Primera pasada: análisis por segmento
+        // analisis por segment
         for (unsigned int i = 0; i < size; i++) {
             unsigned int segment = i / SEGMENT_SIZE;
             if (target_state.jugs[i] > segment_max[segment]) {
@@ -66,17 +73,19 @@ void State::calculateHeuristic(const State &target_state) {
         }
 
         // Momentum global
+        // en base a los estados
         float global_momentum =
             1.0f - (static_cast<float>(matching_jugs) / size);
 
-        // Calcular pesos usando solo transiciones lineales
+        // calculo de pesos, transiciones lineales, mediano es constante,
+        // siempre queremos balancear
         float depth_ratio = std::min(1.0f, static_cast<float>(depth) / 60.0f);
         float strategy_weights[3];
 
-        // Exploracion: decae linealmente
+        // Exploracion:
         strategy_weights[0] = std::max(0.25f, 0.6f * (1.0f - depth_ratio));
 
-        // Balance: se mantiene constante
+        // Balance: constante, siempre queremos algo de balance
         strategy_weights[1] = 0.3f;
 
         // Optimizacion: crece linealmente
@@ -89,12 +98,11 @@ void State::calculateHeuristic(const State &target_state) {
             strategy_weights[i] /= sum;
         }
 
-        // Factor de adaptacion simple basado en el tamaño del problema
+        // Ponderaror en base a size del problema
         float size_factor = std::min(1.0f, static_cast<float>(size) / 30.0f);
 
-        // Ajustes adaptativos simplificados
         if (adaptive_params.consecutive_improvements > 3) {
-            // Aumentar optimizacion
+            // Aumentar optimizaciom
             float adjustment = 0.1f * size_factor;
             strategy_weights[2] += adjustment;
             strategy_weights[1] -= adjustment * 0.5f;
@@ -107,12 +115,11 @@ void State::calculateHeuristic(const State &target_state) {
             strategy_weights[2] -= adjustment * 0.5f;
         }
 
-        // Asegurar mínimos y renormalizar
-        // TODO: quiza cambiar a un for de la suma de todos
+        // Asegurar almenos un peso
         strategy_weights[0] = std::max(0.2f, strategy_weights[0]);
         strategy_weights[1] = std::max(0.2f, strategy_weights[1]);
         strategy_weights[2] = std::max(0.2f, strategy_weights[2]);
-
+        // ponderacion
         sum = strategy_weights[0] + strategy_weights[1] + strategy_weights[2];
         for (int i = 0; i < 3; i++) {
             strategy_weights[i] /= sum;
@@ -125,7 +132,7 @@ void State::calculateHeuristic(const State &target_state) {
         TRACE_PLOT("State/Weights/Optimization",
                    static_cast<int64_t>(strategy_weights[2] * 100));
 
-        // Segunda pasada: cálculo de valores
+        // Calculo momentum por segmento
         for (unsigned int i = 0; i < size; i++) {
             unsigned int segment = i / SEGMENT_SIZE;
             float segment_momentum =
@@ -145,17 +152,20 @@ void State::calculateHeuristic(const State &target_state) {
                     strategy_weights[0] * 30.0f + // Exploracion
                     strategy_weights[1] * 25.0f + // Balance
                     strategy_weights[2] * 20.0f;  // Optimizacion
-
+                // bonificacion por estar en la posicion correcta
                 pattern_value += static_cast<unsigned int>(
                     pattern_boost * (1.0f + position_factor * 0.5f));
             } else {
+                // diferencia por cada posicion
                 int diff = static_cast<int>(target_state.jugs[i]) -
                            static_cast<int>(jugs[i]);
-
+                // max de cada segmeneto
                 unsigned int local_max = segment_max[segment];
                 unsigned int operations = static_cast<unsigned int>(
                     std::ceil(static_cast<float>(std::abs(diff)) / local_max));
-
+                // factor de la heuristica, para cada una de las 3 estrategias
+                // considerando el momentum, se prefiere la expacion para los
+                // transfers
                 float transfer_factor =
                     strategy_weights[0] *
                         (10.0f - (5.0f * combined_momentum)) + // Exploracion
@@ -172,21 +182,16 @@ void State::calculateHeuristic(const State &target_state) {
         delete[] segment_matches;
         delete[] segment_max;
 
-        // Normalizacion simplificada
+        // Normalizado por un maximo
         unsigned int pattern_max = static_cast<unsigned int>(size * 25);
         pattern_value =
             pattern_max > pattern_value ? pattern_max - pattern_value : 0;
 
-        // Penalizacion por profundidad simplificada
+        // Penalizar por profundidad
         float depth_penalty = std::min(
             0.1f + (depth / (size * 3.0f)) * (0.8f + global_momentum), 0.3f);
-        /*float depth_penalty = std::min(
-            0.2f + (depth / (size * 2.0f)) * (1.0f + global_momentum), 0.7f);*/
-        /*if (depth > 100) {
-            depth_penalty +=
-                (depth - 100) / 200.0f; // Aumenta 0.5% cada 100 niveles
-                }*/
-        // Peso final simplificado
+        // Peso final, ponderado cada heuristica considerando el momentum y la
+        // profundidad transfers pq pierde precision al final y no se prefiere
         weight = static_cast<unsigned int>(
             transfer_value * (1.5f + global_momentum) +
             pattern_value * (1.0f - depth_penalty) +
@@ -211,6 +216,8 @@ void State::calculateHeuristic(const State &target_state) {
         heuristic_calculated = true;
     }
 }
+// generacion de suceros sin ningun filtro, se generan todos los posibles y se
+// agregan
 State **State::generateSuccessors(const unsigned int *capacities,
                                   unsigned int &num_successors) const {
     TRACE_SCOPE;
@@ -229,7 +236,7 @@ State **State::generateSuccessors(const unsigned int *capacities,
         for (unsigned int i = 0; i < size; i++) {
             unsigned int original_i = new_jugs[i];
 
-            // Transfer operations
+            // Transfer
             for (unsigned int j = 0; j < size; j++) {
                 if (i == j || new_jugs[i] == 0 ||
                     new_jugs[j] == capacities[j]) {
@@ -254,7 +261,7 @@ State **State::generateSuccessors(const unsigned int *capacities,
                 }
             }
 
-            // Fill operation
+            // Fill
             if (new_jugs[i] < capacities[i]) {
                 new_jugs[i] = capacities[i];
                 successors[num_successors] = new State(
@@ -263,7 +270,7 @@ State **State::generateSuccessors(const unsigned int *capacities,
                 new_jugs[i] = original_i;
             }
 
-            // Empty operation
+            // Empty
             if (new_jugs[i] > 0) {
                 new_jugs[i] = 0;
 
@@ -279,6 +286,8 @@ State **State::generateSuccessors(const unsigned int *capacities,
         return successors;
 
     } catch (...) {
+        // en caso de error, liberar todo para evitar leaks en la misma
+        // ejecucion
         if (successors) {
             for (unsigned int i = 0; i < num_successors; i++) {
                 delete successors[i];
@@ -306,7 +315,8 @@ void State::printState(const char *label) {
     }
     cout << "\n";
 }
-
+// lectura de archivos 2 lineas, falta el verificador de que si no es posible
+// solucionar un estado, no se deberia cargar
 bool State::readStatesFromFile(const string &fileName, State *max_state,
                                State *target_state) {
     TRACE_SCOPE;

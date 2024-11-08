@@ -23,7 +23,8 @@ int main() {
         while (!(std::cin >> option)) {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "Invalid input. Please enter a number (1-4): ";
+            std::cout
+                << "Numero invalido, se debe seleccionar alguno entre (1-4): ";
         }
 
         switch (option) {
