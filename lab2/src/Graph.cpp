@@ -1,5 +1,9 @@
 #include "../include/Graph.h"
 
+Graph::Graph() {
+    this->vertexCount = 0;
+    this->edgeCount = 0;
+}
 Graph::Graph(int vertices) {
     this->vertexCount = vertices;
     this->adj = vector<AdjList>(vertices);
@@ -44,4 +48,45 @@ void Graph::clear() {
         adjList.clear();
     }
     edgeCount = 0;
+}
+
+bool Graph::createFromFile(const string &fileName) {
+    ifstream file(fileName);
+    if (!file.is_open()) {
+        cout << "No se pudo abrir el archivo " << fileName << endl;
+        return false;
+    }
+    vpii edges;
+    int v, w;
+    while (file >> v >> w) {
+        edges.push_back({v, w});
+    }
+    int maxVertex = 0;
+    for (const auto &edge : edges) {
+        maxVertex = std::max(maxVertex, std::max(edge.first, edge.second));
+    }
+    this->vertexCount = maxVertex;
+    this->adj = vector<AdjList>(maxVertex);
+    this->edgeCount = 0;
+    // formato DIMACS no dirigido
+    for (const auto &edge : edges) {
+        this->addEdge(edge.first - 1, edge.second - 1);
+        this->addEdge(edge.second - 1, edge.first - 1);
+    }
+
+    std::cout << "total de aristas: " << edges.size() << std::endl;
+    std::cout << "total de vertices: " << maxVertex << std::endl;
+    this->printGraph();
+
+    return true;
+}
+
+void Graph::printGraph() {
+    for (int i = 0; i < vertexCount; i++) {
+        cout << i << ": ";
+        for (const auto &w : adj[i]) {
+            cout << w << " ";
+        }
+        cout << endl;
+    }
 }

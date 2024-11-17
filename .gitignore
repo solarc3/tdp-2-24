@@ -1,0 +1,5 @@
+*.log
+.env
+obj/
+water_jugs
+vccore.*

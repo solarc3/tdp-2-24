@@ -16,31 +16,31 @@ $(OBJ_DIR):
 
 # target sin tracy
 water_jugs: $(OBJ_DIR)/State.o $(OBJ_DIR)/Search.o $(OBJ_DIR)/Heap.o $(OBJ_DIR)/HashTable.o $(OBJ_DIR)/Solver.o $(OBJ_DIR)/main.o
-	g++ ${FLAGS} $(OBJ_DIR)/*.o -o water_jugs
+	clang ${FLAGS} $(OBJ_DIR)/*.o -o water_jugs
 
 # target con tracy agregado
 water_jugs_tracy: $(OBJ_DIR)/State.o $(OBJ_DIR)/Search.o $(OBJ_DIR)/Heap.o $(OBJ_DIR)/HashTable.o $(OBJ_DIR)/Solver.o $(OBJ_DIR)/main.o
-	g++ ${FLAGS} $(OBJ_DIR)/*.o /usr/lib/libTracyClient.a -o water_jugs
+	clang ${FLAGS} $(OBJ_DIR)/*.o /usr/lib/libTracyClient.a -o water_jugs
 
 # compilacion para cada objecto y sus dependencias
 # no hay problemas con los .h por los pragma once
 $(OBJ_DIR)/main.o: src/main.cpp
-	g++ ${FLAGS} -I./include -c src/main.cpp -o $(OBJ_DIR)/main.o
+	clang ${FLAGS} -I./include -c src/main.cpp -o $(OBJ_DIR)/main.o
 
 $(OBJ_DIR)/State.o: src/State.cpp include/State.h
-	g++ ${FLAGS} -I./include -c src/State.cpp -o $(OBJ_DIR)/State.o
+	clang ${FLAGS} -I./include -c src/State.cpp -o $(OBJ_DIR)/State.o
 
 $(OBJ_DIR)/Search.o: src/Search.cpp include/Search.h
-	g++ ${FLAGS} -I./include -c src/Search.cpp -o $(OBJ_DIR)/Search.o
+	clang ${FLAGS} -I./include -c src/Search.cpp -o $(OBJ_DIR)/Search.o
 
 $(OBJ_DIR)/Heap.o: src/Heap.cpp include/Heap.h
-	g++ ${FLAGS} -I./include -c src/Heap.cpp -o $(OBJ_DIR)/Heap.o
+	clang ${FLAGS} -I./include -c src/Heap.cpp -o $(OBJ_DIR)/Heap.o
 
 $(OBJ_DIR)/HashTable.o: src/HashTable.cpp include/HashTable.h
-	g++ ${FLAGS} -I./include -c src/HashTable.cpp -o $(OBJ_DIR)/HashTable.o
+	clang ${FLAGS} -I./include -c src/HashTable.cpp -o $(OBJ_DIR)/HashTable.o
 
 $(OBJ_DIR)/Solver.o: src/Solver.cpp include/Solver.h
-	g++ ${FLAGS} -I./include -c src/Solver.cpp -o $(OBJ_DIR)/Solver.o
+	clang ${FLAGS} -I./include -c src/Solver.cpp -o $(OBJ_DIR)/Solver.o
 
 # si es que se compilo, borramos la carpeta y el ejecutable
 clean:

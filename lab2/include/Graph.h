@@ -1,6 +1,10 @@
+#pragma once
 #include <ext/pb_ds/assoc_container.hpp>
+#include <fstream>
+#include <iostream>
 using namespace __gnu_pbds;
 using namespace std;
+#define vpii vector<pair<int, int>> // sobrenombre para no escribir tanto
 
 class Graph {
     private:
@@ -10,7 +14,8 @@ class Graph {
     size_t edgeCount;
 
     public:
-    Graph(int vertices);
+    Graph();
+    explicit Graph(int vertices);
     void addEdge(int v, int w);
     bool hasEdge(int v, int w) const;
     vector<int> getNeighbors(int v) const;
@@ -19,4 +24,6 @@ class Graph {
     int getDegree(int v) const;
     bool isEmpty() const;
     void clear();
+    bool createFromFile(const string &fileName);
+    void printGraph();
 };
