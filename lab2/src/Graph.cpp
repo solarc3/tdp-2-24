@@ -90,3 +90,11 @@ void Graph::printGraph() {
         cout << endl;
     }
 }
+
+int Graph::getMaxDegree() {
+    int maxDegree = 0;
+    for (int i = 0; i < vertexCount; i++) {
+        maxDegree = std::max(maxDegree, (int)adj[i].size());
+    }
+    return maxDegree;
+}

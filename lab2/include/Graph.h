@@ -26,4 +26,5 @@ class Graph {
     void clear();
     bool createFromFile(const string &fileName);
     void printGraph();
+    int getMaxDegree();
 };
