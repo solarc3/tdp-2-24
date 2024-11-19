@@ -49,7 +49,7 @@ int main() {
 
             case 3: {
                 try {
-                    // Ejemplo básico de test
+                    // Ejemplo basico de test
                     Solver testSolver;
                     if (testSolver.initialize("test_graph.txt")) {
                         testSolver.solve();

@@ -23,14 +23,14 @@ bool Graph::hasEdge(int v, int w) const {
 
 vector<int> Graph::getNeighbors(int v) const {
     vector<int> neighbors;
-    neighbors.reserve(adj[v].size()); // Preallocate para eficiencia
+    neighbors.reserve(adj[v].size());
     for (const auto &w : adj[v]) {
         neighbors.push_back(w);
     }
     return neighbors;
 }
 
-void Graph::removeEdge(int v, int w) {
+void Graph::removeEdge(int v, int w) { // TODO: NO SE UTILIZA
     if (hasEdge(v, w)) {
         adj[v].erase(w);
         edgeCount--;
@@ -43,7 +43,7 @@ int Graph::getDegree(int v) const { return adj[v].size(); }
 
 bool Graph::isEmpty() const { return edgeCount == 0; }
 
-void Graph::clear() {
+void Graph::clear() { // TODO: NO SE UTILIZA
     for (auto &adjList : adj) {
         adjList.clear();
     }
@@ -51,37 +51,34 @@ void Graph::clear() {
 }
 
 bool Graph::createFromFile(const string &fileName) {
+    // First pass - find max vertex
     ifstream file(fileName);
     if (!file.is_open()) {
-        cout << "No se pudo abrir el archivo " << fileName << endl;
         return false;
     }
-    vpii edges;
-    int v, w;
-    while (file >> v >> w) {
-        edges.push_back({v, w});
-    }
-    int maxVertex = 0;
-    for (const auto &edge : edges) {
-        maxVertex = std::max(maxVertex, std::max(edge.first, edge.second));
-    }
-    this->vertexCount = maxVertex;
-    this->adj = vector<AdjList>(maxVertex);
-    this->edgeCount = 0;
-    // formato DIMACS no dirigido
-    for (const auto &edge : edges) {
-        this->addEdge(edge.first - 1, edge.second - 1);
-        this->addEdge(edge.second - 1, edge.first - 1);
-    }
 
-    std::cout << "total de aristas: " << edges.size() << std::endl;
-    std::cout << "total de vertices: " << maxVertex << std::endl;
-    this->printGraph();
+    int v, w;
+    int maxVertex = 0;
+    while (file >> v >> w) {
+        maxVertex = max(maxVertex, max(v, w));
+    }
+    file.close();
+
+    // Reserve space
+    vertexCount = maxVertex;
+    adj.resize(maxVertex);
+    edgeCount = 0;
+
+    file.open(fileName);
+    while (file >> v >> w) {
+        addEdge(v - 1, w - 1);
+        addEdge(w - 1, v - 1);
+    }
 
     return true;
 }
 
-void Graph::printGraph() {
+void Graph::printGraph() { // TODO: NO SE UTILIZA
     for (int i = 0; i < vertexCount; i++) {
         cout << i << ": ";
         for (const auto &w : adj[i]) {
@@ -91,7 +88,7 @@ void Graph::printGraph() {
     }
 }
 
-int Graph::getMaxDegree() {
+int Graph::getMaxDegree() { // TODO: NO SE UTILIZA
     int maxDegree = 0;
     for (int i = 0; i < vertexCount; i++) {
         maxDegree = std::max(maxDegree, (int)adj[i].size());

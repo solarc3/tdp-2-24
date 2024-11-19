@@ -10,7 +10,7 @@ bool Solver::initialize(const string &filename) {
     dangerHeuristic = std::make_unique<DangerHeuristic>(graph);
     bounds = std::make_unique<Bounds>(graph);
     bnb = std::make_unique<BranchAndBound>(graph, *bounds, *dangerHeuristic);
-    // Reinicializar bestSolution con el grafo actual
+    // reupdate con el grafo nuevo
     bestSolution = ColoringState(graph, graph.getVertexCount());
     initialized = true;
     return true;
@@ -41,7 +41,7 @@ void Solver::printSolution() const {
         return;
     }
 
-    // Imprimir asignación de colores
+    // Imprimir asignacion de colores
     for (int v = 0; v < graph.getVertexCount(); v++) {
         std::cout << v << " " << bestSolution.getColor(v) << std::endl;
     }
@@ -50,7 +50,7 @@ void Solver::printSolution() const {
     std::cout << "Tiempo: " << executionTime.count() << " [ms]" << std::endl;
 
     if (!bestSolution.isLegal()) {
-        std::cout << "WARNING: La solución tiene "
+        std::cout << "WARNING: La solucion tiene "
                   << bestSolution.getNumConflicts() << " conflictos!"
                   << std::endl;
     }

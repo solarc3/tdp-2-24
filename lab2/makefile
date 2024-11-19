@@ -1,5 +1,5 @@
 # Compiler flags
-FLAGS = -Wall -std=gnu++17 -march=native -Ofast
+FLAGS = -Wall -Wmaybe-uninitialized -Wextra -std=gnu++17 -march=native -Ofast
 
 # Directories
 SRC_DIR = src
@@ -48,5 +48,6 @@ $(OBJ_DIR)/DangerHeuristic.o: $(SRC_DIR)/DangerHeuristic.cpp $(INC_DIR)/DangerHe
 $(OBJ_DIR)/Bounds.o: $(SRC_DIR)/Bounds.cpp $(INC_DIR)/Bounds.h $(INC_DIR)/Graph.h $(INC_DIR)/ColoringState.h $(INC_DIR)/DangerHeuristic.h
 $(OBJ_DIR)/BranchAndBound.o: $(SRC_DIR)/BranchAndBound.cpp $(INC_DIR)/BranchAndBound.h $(INC_DIR)/Graph.h $(INC_DIR)/ColoringState.h $(INC_DIR)/Bounds.h $(INC_DIR)/DangerHeuristic.h
 $(OBJ_DIR)/Solve.o: $(SRC_DIR)/Solve.cpp $(INC_DIR)/Solve.h $(INC_DIR)/Graph.h $(INC_DIR)/ColoringState.h $(INC_DIR)/Bounds.h $(INC_DIR)/DangerHeuristic.h $(INC_DIR)/BranchAndBound.h
+$(OBJ_DIR)/ColorDependency.o: $(SRC_DIR)/ColorDependency.cpp $(INC_DIR)/ColorDependency.h $(INC_DIR)/Graph.h $(INC_DIR)/ColoringState.h
 
 .PHONY: all clean tracy

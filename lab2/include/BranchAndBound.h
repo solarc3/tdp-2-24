@@ -16,6 +16,9 @@ class BranchAndBound {
     using hash_set = cc_hash_table<int, null_type, hash<int>>;
 
     private:
+    int upBnd = 1; // destructivo I
+    int loBnd = 3; // destructivo II
+    int maxBacktrackDepth;
     const Graph &graph;
     Bounds &bounds;
     DangerHeuristic &dangerHeuristic;
@@ -25,10 +28,11 @@ class BranchAndBound {
     mutable hash_set pruned_vertices;
     mutable vertex_set vertex_order;
 
-    // Método principal recursivo de B&B
+    // Metodo principal recursivo de B&B
     bool branchAndBoundRecursive(ColoringState &state, int targetColors);
 
     public:
+<<<<<<< HEAD
     BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &d,
                    double alpha = 0.1, int maxIter = 1000000,
                    std::chrono::milliseconds tLimit = std::chrono::hours(1));
@@ -37,4 +41,13 @@ class BranchAndBound {
     bool shouldPrune(const ColoringState &state, int vertex, int color) const;
     bool isInfeasible(const ColoringState &state, int vertex) const;
     int selectBestVertex(const ColoringState &state) const;
+=======
+    BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &d);
+
+    void solve(ColoringState &solution);
+    int calculateDStar(const ColoringState &state) const;
+    bool isEligibleBacktrackNode(const ColoringState &state, int vertex) const;
+
+    bool backtrackToEligibleNode(ColoringState &state, int fromPos, int toPos);
+>>>>>>> d9d247d (no funciona deje la zorra)
 };

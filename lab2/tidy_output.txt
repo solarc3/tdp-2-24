@@ -1,0 +1,242 @@
+Error while trying to load a compilation database:
+Could not auto-detect compilation database for file "src/Bounds.cpp"
+No compilation database found in /home/solar/Desktop/tdp/lab2/src or any parent directory
+json-compilation-database: Error while opening JSON database: No such file or directory
+fixed-compilation-database: Error while opening fixed database: No such file or directory
+Running without flags.
+[1/7] Processing file /home/solar/Desktop/tdp/lab2/src/Bounds.cpp.
+5478 warnings generated.
+[2/7] Processing file /home/solar/Desktop/tdp/lab2/src/BranchAndBound.cpp.
+11020 warnings generated.
+[3/7] Processing file /home/solar/Desktop/tdp/lab2/src/ColoringState.cpp.
+16000 warnings generated.
+[4/7] Processing file /home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp.
+21385 warnings generated.
+[5/7] Processing file /home/solar/Desktop/tdp/lab2/src/Graph.cpp.
+26326 warnings generated.
+[6/7] Processing file /home/solar/Desktop/tdp/lab2/src/main.cpp.
+31829 warnings generated.
+[7/7] Processing file /home/solar/Desktop/tdp/lab2/src/Solve.cpp.
+37353 warnings generated.
+/home/solar/Desktop/tdp/lab2/src/Bounds.cpp:4:29: warning: parameter name 'g' is too short, expected at least 3 characters [readability-identifier-length]
+    4 | Bounds::Bounds(const Graph &g)
+      |                             ^
+/home/solar/Desktop/tdp/lab2/src/Bounds.cpp:19:25: warning: parameter name 'a' is too short, expected at least 3 characters [readability-identifier-length]
+   19 |          [](const auto &a, const auto &b) { return a.second > b.second; });
+      |                         ^
+/home/solar/Desktop/tdp/lab2/src/Bounds.cpp:19:40: warning: parameter name 'b' is too short, expected at least 3 characters [readability-identifier-length]
+   19 |          [](const auto &a, const auto &b) { return a.second > b.second; });
+      |                                        ^
+/home/solar/Desktop/tdp/lab2/src/Bounds.cpp:26:18: warning: variable name 'v' is too short, expected at least 3 characters [readability-identifier-length]
+   26 |         for (int v : clique) {
+      |                  ^
+/home/solar/Desktop/tdp/lab2/src/Bounds.cpp:45:14: warning: loop variable name 'v' is too short, expected at least 2 characters [readability-identifier-length]
+   45 |     for (int v = 0; v < graph.getVertexCount(); v++) {
+      |              ^
+/home/solar/Desktop/tdp/lab2/src/Bounds.cpp:62:18: warning: loop variable name 'v' is too short, expected at least 2 characters [readability-identifier-length]
+   62 |         for (int v = 0; v < graph.getVertexCount(); v++) {
+      |                  ^
+/home/solar/Desktop/tdp/lab2/src/Bounds.cpp:83:18: warning: loop variable name 'v' is too short, expected at least 2 characters [readability-identifier-length]
+   83 |         for (int v = 0; v < graph.getVertexCount(); v++) {
+      |                  ^
+/home/solar/Desktop/tdp/lab2/src/BranchAndBound.cpp:3:45: warning: parameter name 'g' is too short, expected at least 3 characters [readability-identifier-length]
+    3 | BranchAndBound::BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &d,
+      |                                             ^
+/home/solar/Desktop/tdp/lab2/src/BranchAndBound.cpp:3:56: warning: parameter name 'b' is too short, expected at least 3 characters [readability-identifier-length]
+    3 | BranchAndBound::BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &d,
+      |                                                        ^
+/home/solar/Desktop/tdp/lab2/src/BranchAndBound.cpp:3:76: warning: parameter name 'd' is too short, expected at least 3 characters [readability-identifier-length]
+    3 | BranchAndBound::BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &d,
+      |                                                                            ^
+/home/solar/Desktop/tdp/lab2/src/BranchAndBound.cpp:40:22: warning: statement should be inside braces [readability-braces-around-statements]
+   40 |     if (vertex == -1)
+      |                      ^
+      |                       {
+   41 |         return false;
+      |
+/home/solar/Desktop/tdp/lab2/src/BranchAndBound.cpp:48:35: warning: statement should be inside braces [readability-braces-around-statements]
+   48 |         if (color >= targetColors)
+      |                                   ^
+      |                                    {
+   49 |             continue;
+      |
+/home/solar/Desktop/tdp/lab2/src/BranchAndBound.cpp:58:25: warning: parameter name 'a' is too short, expected at least 3 characters [readability-identifier-length]
+   58 |          [](const auto &a, const auto &b) { return a.second < b.second; });
+      |                         ^
+/home/solar/Desktop/tdp/lab2/src/BranchAndBound.cpp:58:40: warning: parameter name 'b' is too short, expected at least 3 characters [readability-identifier-length]
+   58 |          [](const auto &a, const auto &b) { return a.second < b.second; });
+      |                                        ^
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:4:43: warning: parameter name 'g' is too short, expected at least 3 characters [readability-identifier-length]
+    4 | ColoringState::ColoringState(const Graph &g, int initialColors)
+      |                                           ^
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:7:14: warning: loop variable name 'v' is too short, expected at least 2 characters [readability-identifier-length]
+    7 |     for (int v = 0; v < graph.getVertexCount(); v++) {
+      |              ^
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:51:5: warning: replace loop by 'std::all_of()' [readability-use-anyofallof]
+   51 |     for (int neighbor : graph.getNeighbors(vertex)) {
+      |     ^
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:70:14: warning: loop variable name 'c' is too short, expected at least 2 characters [readability-identifier-length]
+   70 |     for (int c = 0; c < numColors + 1; c++) {
+      |              ^
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:80:14: warning: loop variable name 'v' is too short, expected at least 2 characters [readability-identifier-length]
+   80 |     for (int v = 0; v < graph.getVertexCount(); v++) {
+      |              ^
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:88:30: warning: statement should be inside braces [readability-braces-around-statements]
+   88 |     if (colors[vertex] == -1)
+      |                              ^
+      |                               {
+   89 |         return false;
+      |
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:91:5: warning: replace loop by 'std::any_of()' [readability-use-anyofallof]
+   91 |     for (int neighbor : graph.getNeighbors(vertex)) {
+      |     ^
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:100:42: warning: parameter 'newColor' is unused [misc-unused-parameters]
+  100 |                                      int newColor) { // TODO: no se ejecuta
+      |                                          ^~~~~~~~
+      |                                           /*newColor*/
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:120:36: warning: statement should be inside braces [readability-braces-around-statements]
+  120 |     if (colors[vertex] == newColor)
+      |                                    ^
+      |                                     {
+  121 |         return 0;
+      |
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:144:14: warning: loop variable name 'v' is too short, expected at least 2 characters [readability-identifier-length]
+  144 |     for (int v = 0; v < graph.getVertexCount(); v++) {
+      |              ^
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:145:29: warning: statement should be inside braces [readability-braces-around-statements]
+  145 |         if (colors[v] == -1)
+      |                             ^
+      |                              {
+  146 |             continue;
+      |
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:148:18: warning: variable name 'u' is too short, expected at least 3 characters [readability-identifier-length]
+  148 |         for (int u : graph.getNeighbors(v)) {
+      |                  ^
+/home/solar/Desktop/tdp/lab2/src/ColoringState.cpp:159:14: warning: loop variable name 'v' is too short, expected at least 2 characters [readability-identifier-length]
+  159 |     for (int v = 0; v < graph.getVertexCount(); v++) {
+      |              ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:4:47: warning: parameter name 'g' is too short, expected at least 3 characters [readability-identifier-length]
+    4 | DangerHeuristic::DangerHeuristic(const Graph &g)
+      |                                               ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:14:12: warning: variable name 'F' is too short, expected at least 3 characters [readability-identifier-length]
+   14 |     double F = params.C / pow(maxColor - diffColored, params.k);
+      |            ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:67:14: warning: loop variable name 'v' is too short, expected at least 2 characters [readability-identifier-length]
+   67 |     for (int v = 0; v < graph.getVertexCount(); v++) {
+      |              ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:74:29: warning: statement should be inside braces [readability-braces-around-statements]
+   74 |     if (vertexQueue.empty())
+      |                             ^
+      |                              {
+   75 |         return -1;
+      |
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:78:9: warning: variable name 'k' is too short, expected at least 3 characters [readability-identifier-length]
+   78 |     int k = std::min(3, (int)vertexQueue.size());
+      |         ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:82:14: warning: variable name 'it' is too short, expected at least 3 characters [readability-identifier-length]
+   82 |         auto it = vertexQueue.find_by_order(vertexQueue.size() - 1 - i);
+      |              ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:100:25: warning: parameter name 'a' is too short, expected at least 3 characters [readability-identifier-length]
+  100 |          [](const auto &a, const auto &b) { return a.second < b.second; });
+      |                         ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:100:40: warning: parameter name 'b' is too short, expected at least 3 characters [readability-identifier-length]
+  100 |          [](const auto &a, const auto &b) { return a.second < b.second; });
+      |                                        ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:113:12: warning: variable name 'r' is too short, expected at least 3 characters [readability-identifier-length]
+  113 |     double r = std::uniform_real_distribution<>(0, totalWeight)(rng);
+      |            ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:133:25: warning: 0.2 is a magic number; consider replacing it with a named constant [readability-magic-numbers]
+  133 |     if (progressRatio < 0.2) {
+      |                         ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:134:21: warning: 1.1 is a magic number; consider replacing it with a named constant [readability-magic-numbers]
+  134 |         params.k *= 1.1;
+      |                     ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:135:22: warning: 0.9 is a magic number; consider replacing it with a named constant [readability-magic-numbers]
+  135 |         params.ku *= 0.9;
+      |                      ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:137:21: warning: 0.9 is a magic number; consider replacing it with a named constant [readability-magic-numbers]
+  137 |         params.k *= 0.9;
+      |                     ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:138:22: warning: 1.1 is a magic number; consider replacing it with a named constant [readability-magic-numbers]
+  138 |         params.ku *= 1.1;
+      |                      ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:142:14: warning: loop variable name 'v' is too short, expected at least 2 characters [readability-identifier-length]
+  142 |     for (int v = 0; v < graph.getVertexCount(); v++) {
+      |              ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:167:24: warning: 0.5 is a magic number; consider replacing it with a named constant [readability-magic-numbers]
+  167 |     return conflicts * 0.5; // Factor de penalizacion
+      |                        ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:175:21: warning: 10 is a magic number; consider replacing it with a named constant [readability-magic-numbers]
+  175 |         if (count > 10)
+      |                     ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:175:24: warning: statement should be inside braces [readability-braces-around-statements]
+  175 |         if (count > 10)
+      |                        ^
+      |                         {
+  176 |             stagnatedVertices++;
+      |
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:186:26: warning: statement should be inside braces [readability-braces-around-statements]
+  186 |         if (vertex == -1)
+      |                          ^
+      |                           {
+  187 |             break; // No hay mas vertices para colorear
+      |
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:199:9: warning: variable name 'nc' is too short, expected at least 3 characters [readability-identifier-length]
+  199 |     int nc = 0; // vertice con meximo diffNeighbors
+      |         ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:201:14: warning: variable name 'v' is too short, expected at least 3 characters [readability-identifier-length]
+  201 |     for (int v : graph.getNeighbors(vertex)) {
+      |              ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:260:17: warning: loop variable name 'c' is too short, expected at least 2 characters [readability-identifier-length]
+  260 |     for (size_t c = 0; c < colorAvailable.size(); c++) {
+      |                 ^
+/home/solar/Desktop/tdp/lab2/src/DangerHeuristic.cpp:273:24: warning: statement should be inside braces [readability-braces-around-statements]
+  273 |             if (shared)
+      |                        ^
+      |                         {
+  274 |                 sharedColors++;
+      |
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:13:25: warning: parameter name 'v' is too short, expected at least 3 characters [readability-identifier-length]
+   13 | void Graph::addEdge(int v, int w) {
+      |                         ^
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:13:32: warning: parameter name 'w' is too short, expected at least 3 characters [readability-identifier-length]
+   13 | void Graph::addEdge(int v, int w) {
+      |                                ^
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:20:25: warning: parameter name 'v' is too short, expected at least 3 characters [readability-identifier-length]
+   20 | bool Graph::hasEdge(int v, int w) const {
+      |                         ^
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:20:32: warning: parameter name 'w' is too short, expected at least 3 characters [readability-identifier-length]
+   20 | bool Graph::hasEdge(int v, int w) const {
+      |                                ^
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:24:37: warning: parameter name 'v' is too short, expected at least 3 characters [readability-identifier-length]
+   24 | vector<int> Graph::getNeighbors(int v) const {
+      |                                     ^
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:27:22: warning: variable name 'w' is too short, expected at least 3 characters [readability-identifier-length]
+   27 |     for (const auto &w : adj[v]) {
+      |                      ^
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:33:28: warning: parameter name 'v' is too short, expected at least 3 characters [readability-identifier-length]
+   33 | void Graph::removeEdge(int v, int w) { // TODO: NO SE UTILIZA
+      |                            ^
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:33:35: warning: parameter name 'w' is too short, expected at least 3 characters [readability-identifier-length]
+   33 | void Graph::removeEdge(int v, int w) { // TODO: NO SE UTILIZA
+      |                                   ^
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:42:26: warning: parameter name 'v' is too short, expected at least 3 characters [readability-identifier-length]
+   42 | int Graph::getDegree(int v) const { return adj[v].size(); }
+      |                          ^
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:60:5: warning: multiple declarations in a single statement reduces readability [readability-isolate-declaration]
+   60 |     int v, w;
+      |     ^~~~~~~~~
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:60:9: warning: variable name 'v' is too short, expected at least 3 characters [readability-identifier-length]
+   60 |     int v, w;
+      |         ^
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:60:12: warning: variable name 'w' is too short, expected at least 3 characters [readability-identifier-length]
+   60 |     int v, w;
+      |            ^
+/home/solar/Desktop/tdp/lab2/src/Graph.cpp:87:26: warning: variable name 'w' is too short, expected at least 3 characters [readability-identifier-length]
+   87 |         for (const auto &w : adj[i]) {
+      |                          ^
+/home/solar/Desktop/tdp/lab2/src/Solve.cpp:45:14: warning: loop variable name 'v' is too short, expected at least 2 characters [readability-identifier-length]
+   45 |     for (int v = 0; v < graph.getVertexCount(); v++) {
+      |              ^
+Suppressed 37265 warnings (37265 in non-user code).
+Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.

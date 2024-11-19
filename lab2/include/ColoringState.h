@@ -1,29 +1,57 @@
-// ColoringState.h
 #pragma once
 #include "Graph.h"
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
 
 class ColoringState {
-    private:
+    public:
     using AdjList = cc_hash_table<int, null_type, hash<int>>;
+    using OrderedSet = tree<int, null_type, less<int>, rb_tree_tag,
+                            tree_order_statistics_node_update>;
 
+<<<<<<< HEAD
     const Graph &graph; // Referencia al grafo original
     vector<int> colors; // Color asignado a cada vértice (-1 = sin color)
     int numColors;
     int numConflicts;
     vector<AdjList> colorClass;
     AdjList uncoloredVertices;
+=======
+    const Graph &graph; // Debe ser el primero ya que se inicializa primero
+    vector<int> colors; // Segundo
+    vector<OrderedSet> colorClass; // Tercero
+    AdjList uncoloredVertices;     // Cuarto
+    int numColors;                 // Quinto
+    int numConflicts;              // Sexto
+    // Constructor normal también debe seguir el mismo orden
+    ColoringState(const Graph &g, int initialColors)
+        : graph(g), colors(g.getVertexCount(), -1), colorClass(initialColors),
+          uncoloredVertices(), numColors(0), numConflicts(0) {
+        // Resto de la inicialización...
+    }
+>>>>>>> d9d247d (no funciona deje la zorra)
 
-    // Métodos privados auxiliares
+    // Operador de asignación de movimiento
+    // En ColoringState.h, agrega:
+
+    ColoringState &operator=(const ColoringState &other) {
+        if (this != &other) {
+            // No copiamos graph ya que es una referencia const
+            // Copiamos todos los contenedores
+            colors = other.colors;
+            colorClass = other.colorClass;
+            uncoloredVertices = other.uncoloredVertices;
+
+            // Copiamos los valores primitivos
+            numColors = other.numColors;
+            numConflicts = other.numConflicts;
+        }
+        return *this;
+    }
     void updateConflicts();
     bool isConflicting(int vertex) const;
-    void updateColorClass(int vertex, int oldColor, int newColor);
 
-    public:
-    ColoringState(const Graph &g, int initialColors);
-
-    // Getters básicos
+    // Getters basicos
     int getNumColors() const { return numColors; }
     int getNumConflicts() const { return numConflicts; }
     int getColor(int vertex) const { return colors[vertex]; }
@@ -36,26 +64,13 @@ class ColoringState {
     bool isComplete() const { return uncoloredVertices.empty(); }
     bool isLegal() const { return numConflicts == 0; }
 
-    // Métodos para análisis y debug
+    // Metodos para analisis y debug
     void print() const;
     vector<pair<int, int>> getConflictingPairs() const;
-
-    // Métodos para B&B y búsqueda tabú
+    // Metodos para B&B y busqueda tabu
     int getDeltaConflicts(int vertex, int newColor) const;
     vector<int> getVerticesWithColor(int color) const;
     int getMaxUsedColor() const;
-    ColoringState &operator=(const ColoringState &other) {
-        if (this != &other) {
-            colors = other.colors;
-            numColors = other.numColors;
-            numConflicts = other.numConflicts;
-            colorClass.clear();
-            colorClass.resize(other.colorClass.size());
-            for (size_t i = 0; i < other.colorClass.size(); ++i) {
-                colorClass[i] = other.colorClass[i];
-            }
-            uncoloredVertices = other.uncoloredVertices;
-        }
-        return *this;
-    }
+    int getDifferentColoredNeighbors(int vertex) const;
+    int getUncoloredNeighbors(int vertex) const;
 };

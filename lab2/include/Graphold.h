@@ -63,7 +63,7 @@ class Graph {
 
     int getDegree(int v) const { return adjacencyList[v].size(); }
 
-    // Obtiene los k vértices de mayor grado
+    // Obtiene los k vertices de mayor grado
     std::vector<int> getTopKByDegree(int k) const {
         std::vector<int> result;
         auto it = degreeOrder.rbegin();
@@ -89,7 +89,7 @@ class Graph {
             throw std::runtime_error("Cannot open file: " + filename);
         }
 
-        // Primera línea contiene número de vértices y aristas
+        // Primera linea contiene numero de vertices y aristas
         int n, m;
         file >> n >> m;
 

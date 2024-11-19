@@ -8,18 +8,18 @@
 class Bounds {
     private:
     const Graph &graph;
-    int lowerBound; // Cota inferior (tamaño del clique máximo encontrado)
-    int upperBound; // Cota superior (colores usados por la heurística DANGER)
-    vector<int> maxClique; // Vértices del clique máximo encontrado
+    int lowerBound; // Cota inferior (tamaño del clique meximo encontrado)
+    int upperBound; // Cota superior (colores usados por la heuristica DANGER)
+    vector<int> maxClique; // Vertices del clique maximo encontrado
     std::unique_ptr<ColoringState> bestColoring; // Mejor coloreo encontrado
 
-    // Método privado para encontrar un clique grande heurísticamente
+    // Metodo privado para encontrar un clique grande heuristicamente
     vector<int> findMaximalClique() const;
 
-    // Método para ordenar vértices por grado para búsqueda de clique
+    // Metodo para ordenar vertices por grado para busqueda de clique
     vector<pair<int, int>> getVerticesByDegree() const;
 
-    // Calcula cota superior usando la heurística DANGER
+    // Calcula cota superior usando la heuristica DANGER
     int calculateUpperBound();
 
     public:
@@ -29,7 +29,7 @@ class Bounds {
     int getLowerBound() const { return lowerBound; }
     int getUpperBound() const { return upperBound; }
 
-    // Obtener el clique máximo encontrado
+    // Obtener el clique maximo encontrado
     const vector<int> &getMaxClique() const { return maxClique; }
 
     // Obtener el mejor coloreo encontrado
