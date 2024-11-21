@@ -119,14 +119,12 @@ int ColoringState::getDeltaConflicts(int vertex, int newColor) const {
         return 0;
 
     int delta = 0;
-    // Restar conflictos actuales
     for (int neighbor : graph.getNeighbors(vertex)) {
         if (colors[neighbor] == colors[vertex]) {
             delta--;
         }
     }
 
-    // Sumar nuevos conflictos potenciales
     for (int neighbor : graph.getNeighbors(vertex)) {
         if (colors[neighbor] == newColor) {
             delta++;

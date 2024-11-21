@@ -6,12 +6,7 @@ BranchAndBound::BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &d,
     : graph(g), bounds(b), dangerHeuristic(d), alpha(0.1),
       maxIterations(maxIter), timeLimit(tLimit) {}
 void BranchAndBound::solve(ColoringState &solution) {
-    auto startTime = std::chrono::steady_clock::now();
-
-    // Generar coloreo inicial
     solution = dangerHeuristic.generateInitialColoring(bounds.getUpperBound());
-
-    // Si no hay solución inicial válida, intentar con coloreo secuencial
     if (solution.getNumColors() == 0) {
         ColoringState initialState(graph, graph.getVertexCount());
         for (int v = 0; v < graph.getVertexCount(); v++) {
@@ -26,13 +21,15 @@ void BranchAndBound::solve(ColoringState &solution) {
     }
 
     int currentK = solution.getNumColors() - 1;
-
+    ColoringState currentState(graph, currentK);
     while (currentK >= bounds.getLowerBound()) {
         ColoringState newState(graph, currentK);
         if (branchAndBoundRecursive(newState, currentK)) {
+            bounds.updateUpperBound(currentK, currentState);
             solution = newState;
             currentK--;
         } else {
+            bounds.updateLowerBound(currentK + 1);
             break;
         }
     }
@@ -77,7 +74,6 @@ bool BranchAndBound::branchAndBoundRecursive(ColoringState &state,
 
 bool BranchAndBound::shouldPrune(const ColoringState &state, int vertex,
                                  int color) const {
-    // More aggressive pruning based on conflicts
     if (state.getDeltaConflicts(vertex, color) > 0) {
         return true;
     }
@@ -86,7 +82,6 @@ bool BranchAndBound::shouldPrune(const ColoringState &state, int vertex,
 
 bool BranchAndBound::isInfeasible(const ColoringState &state,
                                   int vertex) const {
-    // Check if vertex has no valid colors available
     for (int c = 0; c < state.getNumColors(); c++) {
         if (state.isValidAssignment(vertex, c))
             return false;
