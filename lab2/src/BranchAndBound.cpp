@@ -40,12 +40,10 @@ bool BranchAndBound::branchAndBoundRecursive(ColoringState &state,
     if (state.isComplete() && state.isLegal())
         return true;
 
-    // Early infeasibility detection
     int vertex = selectBestVertex(state);
     if (vertex == -1 || isInfeasible(state, vertex))
         return false;
 
-    // Get colors ordered by DANGER score
     auto availableColors = state.getAvailableColors(vertex);
     vector<pair<int, double>> orderedColors;
 

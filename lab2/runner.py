@@ -18,7 +18,6 @@ def run_program_for_file(program_path, input_file):
     print(f"\nDebug [{thread_id}] - Iniciando procesamiento para archivo: {input_file}")
     
     try:
-        # Crear el proceso
         print(f"Debug [{thread_id}] - Iniciando el proceso...")
         process = subprocess.Popen(
             [program_path],
@@ -48,13 +47,10 @@ def run_program_for_file(program_path, input_file):
         process.stdin.write("4\n")
         process.stdin.flush()
         
-        # Obtener la salida
         stdout, stderr = process.communicate(timeout=30)
         
         print(f"Debug [{thread_id}] - Comunicación completada")
-        print(f"Debug [{thread_id}] - Código de salida del proceso: {process.returncode}")
         
-        # Preparar el resultado
         result = {
             'file': input_file,
             'stdout': stdout,
@@ -63,21 +59,8 @@ def run_program_for_file(program_path, input_file):
             'success': True
         }
         
-        print(f"Debug [{thread_id}] - Procesado exitosamente: {input_file}")
-        
-    except subprocess.TimeoutExpired:
-        print(f"Debug [{thread_id}] - ERROR: Timeout al procesar {input_file}")
-        process.kill()
-        result = {
-            'file': input_file,
-            'stdout': '',
-            'stderr': 'ERROR: Timeout al procesar el archivo',
-            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
-            'success': False
-        }
     except Exception as e:
         print(f"Debug [{thread_id}] - ERROR procesando {input_file}: {str(e)}")
-        print(f"Debug [{thread_id}] - Tipo de error: {type(e)}")
         result = {
             'file': input_file,
             'stdout': '',
@@ -86,17 +69,16 @@ def run_program_for_file(program_path, input_file):
             'success': False
         }
     
-    # Agregar el resultado a la cola
     results_queue.put(result)
     return result
 
 def write_results_to_file(output_file):
     """
-    Función que se ejecuta en un thread separado para escribir resultados al archivo
+    Thread dedicado a escribir resultados al archivo de salida
     """
     while True:
         result = results_queue.get()
-        if result is None:  # Señal de terminación
+        if result is None:
             break
             
         with file_lock:
@@ -114,50 +96,59 @@ def write_results_to_file(output_file):
         results_queue.task_done()
 
 def main():
-    # Ruta al programa ejecutable
+    # Configuración
     program_path = "./graph"  # Ajusta esto a la ruta de tu programa
-    
-    # Debug: Mostrar el directorio actual
-    print(f"Debug - Directorio actual: {os.getcwd()}")
-    
-    # Ruta al directorio que contiene los archivos de entrada
     input_dir = "examples"
-    
-    # Archivo donde se guardarán todas las salidas
     output_file = "resultados_totales.txt"
     
-    # Crear el directorio si no existe
+    # Mostrar el directorio actual para debugging
+    current_dir = os.getcwd()
+    print(f"\nDirectorio actual: {current_dir}")
+    print(f"Buscando archivos en: {os.path.join(current_dir, input_dir)}")
+    
+    # Verificar y crear directorio si no existe
     if not os.path.exists(input_dir):
-        print(f"Debug - Creando directorio {input_dir}")
         os.makedirs(input_dir)
+        print(f"Se creó el directorio: {input_dir}")
     
-    # Obtener la lista de archivos .txt en el directorio
+    # Obtener lista de archivos .txt
     input_files = [f for f in os.listdir(input_dir) if f.endswith('.txt')]
+    print(f"\nSe encontraron {len(input_files)} archivos .txt para procesar")
     
-    print(f"Debug - Archivos encontrados: {input_files}")
-    print(f"Se encontraron {len(input_files)} archivos para procesar")
-    
+    # Verificar programa ejecutable
     if not os.path.exists(program_path):
-        print("ERROR: El programa no se encuentra en la ruta especificada")
+        print(f"ERROR: El programa no se encuentra en {program_path}")
         return
-
-    # Iniciar el thread escritor
+    
+    if not os.access(program_path, os.X_OK):
+        print("AVISO: El programa no tiene permisos de ejecución")
+        try:
+            os.chmod(program_path, 0o755)
+            print("Se agregaron permisos de ejecución al programa")
+        except Exception as e:
+            print(f"Error al intentar dar permisos: {e}")
+    
+    if len(input_files) == 0:
+        print("\nNo se encontraron archivos para procesar.")
+        print("Asegúrate de que:")
+        print("1. El directorio 'examples' existe")
+        print("2. Los archivos tienen extensión .txt")
+        print("3. Tienes permisos para leer el directorio")
+        return
+    
+    # Iniciar thread escritor
     writer_thread = threading.Thread(target=write_results_to_file, args=(output_file,))
     writer_thread.start()
     
-    # Número de workers (puedes ajustar esto según tu CPU)
-    max_workers = min(32, os.cpu_count() * 2)  # Usar máximo 32 workers o el doble de CPU cores
-    print(f"Debug - Iniciando pool con {max_workers} workers")
-    
     # Procesar archivos en paralelo
+    max_workers = min(32, os.cpu_count() * 2)
+    print(f"\nIniciando procesamiento con {max_workers} workers")
+    
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Crear futures para cada archivo
         futures = [
             executor.submit(run_program_for_file, program_path, input_file)
             for input_file in input_files
         ]
-        
-        # Esperar a que todos los futures terminen
         concurrent.futures.wait(futures)
     
     # Señalar al writer thread que termine
@@ -166,9 +157,13 @@ def main():
     
     print(f"\nProcesamiento completado. Los resultados se han guardado en {output_file}")
     
-    # Mostrar estadísticas
-    successful = sum(1 for future in futures if future.result()['success'])
-    print(f"Archivos procesados exitosamente: {successful}/{len(input_files)}")
+    # Mostrar estadísticas finales
+    successes = sum(1 for future in futures if future.result()['success'])
+    failures = len(futures) - successes
+    print(f"\nEstadísticas finales:")
+    print(f"Total de archivos procesados: {len(futures)}")
+    print(f"Exitosos: {successes}")
+    print(f"Fallidos: {failures}")
 
 if __name__ == "__main__":
     main()

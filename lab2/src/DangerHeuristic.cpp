@@ -1,26 +1,98 @@
+// DangerHeuristic.cpp
 #include "../include/DangerHeuristic.h"
 
 DangerHeuristic::DangerHeuristic(const Graph &g)
     : graph(g), rng(std::random_device{}()) {}
 
+ColoringState DangerHeuristic::generateInitialColoring(int maxColors) {
+    ColoringState state(graph, maxColors);
+    active_vertices.clear();
+    clearCaches();
+
+    // Inicializar conjunto de vértices activos
+    for (int v = 0; v < graph.getVertexCount(); v++) {
+        active_vertices.insert(v);
+    }
+
+    // Colorear vértices
+    while (!active_vertices.empty()) {
+        updateVertexScores(state);
+
+        int vertex = selectNextVertex(state);
+        if (vertex == -1)
+            break;
+
+        int color = selectColor(state, vertex);
+        state.assignColor(vertex, color);
+
+        // Remover vértice coloreado
+        active_vertices.erase(vertex);
+    }
+
+    return state;
+}
+
+void DangerHeuristic::updateVertexScores(const ColoringState &state) {
+    vertex_scores.clear();
+
+    for (const auto &v : active_vertices) {
+        double danger = calculateVertexDanger(state, v);
+        vertex_scores.insert({danger, v});
+    }
+}
+
 double DangerHeuristic::calculateVertexDanger(const ColoringState &state,
                                               int vertex) const {
-    double differentColored = getDifferentColoredNeighbors(state, vertex);
-    double maxColor = state.getMaxUsedColor() + 1;
+    // Verificar cache
+    if (vertex_danger_cache.find(vertex) != vertex_danger_cache.end()) {
+        return vertex_danger_cache[vertex];
+    }
 
-    // F(y) = C/(maxColor - y)^k donde y es differentColored
-    double F = C / pow(maxColor - differentColored, k);
-    double uncoloredTerm = ku * getUncoloredNeighbors(state, vertex);
-    double shareRatioTerm = ka * getColorShareRatio(state, vertex);
+    int diffColored = getDifferentColoredNeighbors(state, vertex);
+    int maxColor = state.getMaxUsedColor() + 1;
 
-    return F + uncoloredTerm + shareRatioTerm;
+    // Calcular componentes de danger
+    double F = calculateF(diffColored, maxColor);
+    double uncoloredTerm = params.ku * getUncoloredNeighbors(state, vertex);
+    double shareRatioTerm = params.ka * getColorShareRatio(state, vertex);
+
+    double danger = F + uncoloredTerm + shareRatioTerm;
+    vertex_danger_cache[vertex] = danger;
+
+    return danger;
+}
+
+double DangerHeuristic::calculateF(int diffColored, int maxColor) const {
+    if (maxColor <= diffColored)
+        return std::numeric_limits<double>::max();
+    return params.C / std::pow(maxColor - diffColored, params.k);
+}
+
+int DangerHeuristic::selectNextVertex(const ColoringState &state) const {
+    if (vertex_scores.empty())
+        return -1;
+
+    // Seleccionar entre los top 3 vértices con mayor danger
+    size_t size = vertex_scores.size();
+    size_t candidates = std::min(size_t(3), size);
+
+    std::uniform_int_distribution<> dist(0, candidates - 1);
+    auto it = vertex_scores.end();
+    std::advance(it, -1 - dist(rng));
+
+    return it->second;
 }
 
 double DangerHeuristic::calculateColorDanger(const ColoringState &state,
                                              int vertex, int color) const {
-    // Encontrar el máximo número de vecinos con diferentes colores
+    auto key = std::make_pair(vertex, color);
+    if (color_danger_cache.find(key) != color_danger_cache.end()) {
+        return color_danger_cache[key];
+    }
+
+    // Encontrar vecino con máximo different_colored
     int maxDiffNeighbors = 0;
-    int nc = 0; // vértice con máximo diffNeighbors
+    int nc = vertex; // vértice con max diffNeighbors
 
     for (int v : graph.getNeighbors(vertex)) {
         if (state.getColor(v) == -1 && state.isValidAssignment(v, color)) {
@@ -32,66 +104,28 @@ double DangerHeuristic::calculateColorDanger(const ColoringState &state,
         }
     }
 
-    // Calcular el danger del color según la fórmula del paper
     double maxColor = state.getMaxUsedColor() + 1;
-    double diffNeighborsTerm = k1 * pow(maxColor - maxDiffNeighbors, k2);
-    double uncoloredTerm = k3 * getUncoloredNeighbors(state, nc);
-    double frequencyTerm = k4 * state.getVerticesWithColor(color).size();
+    double diffNeighborsTerm =
+        params.k1 * std::pow(maxColor - maxDiffNeighbors, params.k2);
+    double uncoloredTerm = params.k3 * getUncoloredNeighbors(state, nc);
+    double frequencyTerm = params.k4 * state.getVerticesWithColor(color).size();
 
-    return diffNeighborsTerm + uncoloredTerm - frequencyTerm;
-}
+    double danger = diffNeighborsTerm + uncoloredTerm - frequencyTerm;
+    color_danger_cache[key] = danger;
 
-ColoringState DangerHeuristic::generateInitialColoring(int maxColors) {
-    ColoringState state(graph, maxColors);
-
-    // Get initial vertex ordering
-    auto orderedVertices = getInitialOrderedVertices();
-
-    for (int vertex : orderedVertices) {
-        // Skip CC-dependent vertices
-        if (isVertexCCDependent(state, vertex))
-            continue;
-
-        int color = selectColor(state, vertex);
-        state.assignColor(vertex, color);
-    }
-
-    // Color CC-dependent vertices last
-    for (int v = 0; v < graph.getVertexCount(); v++) {
-        if (state.getColor(v) == -1) {
-            int color = selectColor(state, v);
-            state.assignColor(v, color);
-        }
-    }
-
-    return state;
-}
-
-int DangerHeuristic::selectNextVertex(const ColoringState &state) const {
-    danger_scores.clear();
-    for (int v = 0; v < graph.getVertexCount(); v++) {
-        if (state.getColor(v) == -1) {
-            double danger = calculateVertexDanger(state, v);
-            danger_scores.insert({danger, v});
-        }
-    }
-
-    // Simply return the vertex with highest danger score
-    if (!danger_scores.empty()) {
-        return danger_scores.rbegin()->second;
-    }
-    return -1;
+    return danger;
 }
 
 int DangerHeuristic::selectColor(const ColoringState &state, int vertex) const {
-    vector<int> availableColors = state.getAvailableColors(vertex);
-    if (availableColors.empty())
+    auto colors = state.getAvailableColors(vertex);
+    if (colors.empty())
         return 0;
 
+    // Seleccionar color con menor danger
     double minDanger = std::numeric_limits<double>::max();
-    int selectedColor = availableColors[0];
+    int selectedColor = colors[0];
 
-    for (int color : availableColors) {
+    for (int color : colors) {
         double danger = calculateColorDanger(state, vertex, color);
         if (danger < minDanger) {
             minDanger = danger;
@@ -104,66 +138,59 @@ int DangerHeuristic::selectColor(const ColoringState &state, int vertex) const {
 
 int DangerHeuristic::getDifferentColoredNeighbors(const ColoringState &state,
                                                   int vertex) const {
-    vector<bool> usedColors(state.getMaxUsedColor() + 1, false);
-    int count = 0;
-
+    color_set usedColors;
     for (int neighbor : graph.getNeighbors(vertex)) {
         int color = state.getColor(neighbor);
-        if (color != -1 && !usedColors[color]) {
-            usedColors[color] = true;
-            count++;
+        if (color != -1) {
+            usedColors.insert(color);
         }
     }
-
-    return count;
+    return usedColors.size();
 }
 
 int DangerHeuristic::getUncoloredNeighbors(const ColoringState &state,
                                            int vertex) const {
     int count = 0;
     for (int neighbor : graph.getNeighbors(vertex)) {
-        if (state.getColor(neighbor) == -1) {
+        if (state.getColor(neighbor) == -1)
             count++;
-        }
     }
     return count;
 }
 
 double DangerHeuristic::getColorShareRatio(const ColoringState &state,
                                            int vertex) const {
-    int availableColors = 0;
-    int sharedColors = 0;
-    vector<bool> colorAvailable(state.getMaxUsedColor() + 1, true);
+    vector<bool> colorAvailable(state.getNumColors() + 1, true);
+    int availableCount = 0;
+    int sharedCount = 0;
 
-    // Marcar colores no disponibles debido a vecinos
+    // Marcar colores no disponibles por vecinos
     for (int neighbor : graph.getNeighbors(vertex)) {
         int color = state.getColor(neighbor);
-        if (color != -1) {
+        if (color != -1)
             colorAvailable[color] = false;
-        }
     }
 
     // Contar colores disponibles y compartidos
-    for (size_t c = 0; c < colorAvailable.size(); c++) {
-        if (colorAvailable[c]) {
-            availableColors++;
-            // Verificar si algún vecino no coloreado también puede usar este
-            // color
+    for (size_t color = 0; color < colorAvailable.size(); color++) {
+        if (colorAvailable[color]) {
+            availableCount++;
+            // Verificar si algún vecino no coloreado puede usar este color
             bool shared = false;
             for (int neighbor : graph.getNeighbors(vertex)) {
                 if (state.getColor(neighbor) == -1 &&
-                    state.isValidAssignment(neighbor, c)) {
+                    state.isValidAssignment(neighbor, color)) {
                     shared = true;
                     break;
                 }
             }
             if (shared)
-                sharedColors++;
+                sharedCount++;
         }
     }
 
-    return availableColors > 0
-               ? static_cast<double>(sharedColors) / availableColors
+    return availableCount > 0
+               ? static_cast<double>(sharedCount) / availableCount
                : 1.0;
 }
 
@@ -181,11 +208,12 @@ bool DangerHeuristic::isVertexCCDependent(const ColoringState &state,
 
 vector<int> DangerHeuristic::getInitialOrderedVertices() const {
     vector<pair<int, int>> vertices;
+    vertices.reserve(graph.getVertexCount());
+
     for (int v = 0; v < graph.getVertexCount(); v++) {
         vertices.emplace_back(v, graph.getDegree(v));
     }
 
-    // Sort by degree descending
     sort(vertices.begin(), vertices.end(),
          [](const auto &a, const auto &b) { return a.second > b.second; });
 

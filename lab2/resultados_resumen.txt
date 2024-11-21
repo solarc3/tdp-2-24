@@ -1,0 +1,315 @@
+Resumen de ejecución
+===================
+
+Archivo: queen14_14.txt
+Total colores: 33
+Tiempo: 87 [ms]
+
+Archivo: queen10_10.txt
+Total colores: 25
+Tiempo: 5 [ms]
+
+Archivo: miles500.txt
+Total colores: 30
+Tiempo: 37 [ms]
+
+Archivo: queen13_13.txt
+Total colores: 33
+Tiempo: 83 [ms]
+
+Archivo: DSJC125.9.txt
+Total colores: 98
+Tiempo: 90 [ms]
+
+Archivo: myciel6.txt
+Total colores: 20
+Tiempo: 22 [ms]
+
+Archivo: DSJC125.5.txt
+Total colores: 49
+Tiempo: 73 [ms]
+
+Archivo: zeroin.i.2.txt
+Total colores: 47
+Tiempo: 81 [ms]
+
+Archivo: queen6_6.txt
+Total colores: 15
+Tiempo: 4 [ms]
+
+Archivo: david.txt
+Total colores: 18
+Tiempo: 7 [ms]
+
+Archivo: mulsol.i.5.txt
+Total colores: 46
+Tiempo: 64 [ms]
+
+Archivo: queen5_5.txt
+Total colores: 13
+Tiempo: 1 [ms]
+
+Archivo: jean.txt
+Total colores: 15
+Tiempo: 4 [ms]
+
+Archivo: zeroin.i.3.txt
+Total colores: 43
+Tiempo: 46 [ms]
+
+Archivo: queen11_11.txt
+Total colores: 28
+Tiempo: 27 [ms]
+
+Archivo: miles750.txt
+Total colores: 42
+Tiempo: 25 [ms]
+
+Archivo: le450_25a.txt
+Total colores: 51
+Tiempo: 494 [ms]
+
+Archivo: le450_5c.txt
+Total colores: 41
+Tiempo: 481 [ms]
+
+Archivo: fpsol2.i.2.txt
+Total colores: 55
+Tiempo: 516 [ms]
+
+Archivo: fpsol2.i.1.txt
+Total colores: 88
+Tiempo: 531 [ms]
+
+Archivo: mulsol.i.4.txt
+Total colores: 54
+Tiempo: 141 [ms]
+
+Archivo: myciel3.txt
+Total colores: 5
+Tiempo: 0 [ms]
+
+Archivo: anna.txt
+Total colores: 17
+Tiempo: 32 [ms]
+
+Archivo: DSJC250.1.txt
+Total colores: 30
+Tiempo: 106 [ms]
+
+Archivo: myciel5.txt
+Total colores: 11
+Tiempo: 3 [ms]
+
+Archivo: miles1000.txt
+Total colores: 53
+Tiempo: 58 [ms]
+
+Archivo: games120.txt
+Total colores: 12
+Tiempo: 8 [ms]
+
+Archivo: mulsol.i.3.txt
+Total colores: 57
+Tiempo: 136 [ms]
+
+Archivo: DSJC125.1.txt
+Total colores: 13
+Tiempo: 13 [ms]
+
+Archivo: inithx.i.3.txt
+Total colores: 66
+Tiempo: 1042 [ms]
+
+Archivo: DSJR500.1.txt
+Total colores: 20
+Tiempo: 223 [ms]
+
+Archivo: homer.txt
+Total colores: 26
+Tiempo: 289 [ms]
+
+Archivo: myciel4.txt
+Total colores: 8
+Tiempo: 0 [ms]
+
+Archivo: huck.txt
+Total colores: 16
+Tiempo: 4 [ms]
+
+Archivo: miles250.txt
+Total colores: 14
+Tiempo: 6 [ms]
+
+Archivo: queen7_7.txt
+Total colores: 16
+Tiempo: 2 [ms]
+
+Archivo: queen12_12.txt
+Total colores: 30
+Tiempo: 35 [ms]
+
+Archivo: DSJC500.1.txt
+Total colores: 40
+Tiempo: 771 [ms]
+
+Archivo: school1.txt
+Total colores: 84
+Tiempo: 2053 [ms]
+
+Archivo: queen15_15.txt
+Total colores: 38
+Tiempo: 176 [ms]
+
+Archivo: miles1500.txt
+Total colores: 92
+Tiempo: 297 [ms]
+
+Archivo: le450_15a.txt
+Total colores: 41
+Tiempo: 576 [ms]
+
+Archivo: queen8_12.txt
+Total colores: 22
+Tiempo: 55 [ms]
+
+Archivo: mulsol.i.2.txt
+Total colores: 57
+Tiempo: 227 [ms]
+
+Archivo: mulsol.i.1.txt
+Total colores: 66
+Tiempo: 249 [ms]
+
+Archivo: queen9_9.txt
+Total colores: 22
+Tiempo: 48 [ms]
+
+Archivo: inithx.i.2.txt
+Total colores: 65
+Tiempo: 2327 [ms]
+
+Archivo: le450_5b.txt
+Total colores: 26
+Tiempo: 556 [ms]
+
+Archivo: le450_5a.txt
+Total colores: 26
+Tiempo: 370 [ms]
+
+Archivo: queen16_16.txt
+Total colores: 39
+Tiempo: 383 [ms]
+
+Archivo: le450_25c.txt
+Total colores: 72
+Tiempo: 3345 [ms]
+
+Archivo: le450_5d.txt
+Total colores: 37
+Tiempo: 1008 [ms]
+
+Archivo: myciel7.txt
+Total colores: 27
+Tiempo: 87 [ms]
+
+Archivo: DSJC250.5.txt
+Total colores: 96
+Tiempo: 2527 [ms]
+
+Archivo: zeroin.i.1.txt
+Total colores: 63
+Tiempo: 279 [ms]
+
+Archivo: queen8_8.txt
+Total colores: 20
+Tiempo: 21 [ms]
+
+Archivo: le450_15c.txt
+Total colores: 67
+Tiempo: 2819 [ms]
+
+Archivo: le450_25b.txt
+Total colores: 48
+Tiempo: 1349 [ms]
+
+Archivo: le450_15b.txt
+Total colores: 44
+Tiempo: 580 [ms]
+
+Archivo: school1_nsh.txt
+Total colores: 79
+Tiempo: 1527 [ms]
+
+Archivo: flat300_28_0.txt
+Total colores: 115
+Tiempo: 4630 [ms]
+
+Archivo: fpsol2.i.3.txt
+Total colores: 57
+Tiempo: 778 [ms]
+
+Archivo: le450_15d.txt
+Total colores: 71
+Tiempo: 3175 [ms]
+
+Archivo: flat300_26_0.txt
+Total colores: 109
+Tiempo: 3279 [ms]
+
+Archivo: le450_25d.txt
+Total colores: 72
+Tiempo: 2461 [ms]
+
+Archivo: DSJC250.9.txt
+Total colores: 200
+Tiempo: 1657 [ms]
+
+Archivo: flat300_20_0.txt
+Total colores: 104
+Tiempo: 2134 [ms]
+
+Archivo: inithx.i.1.txt
+Total colores: 92
+Tiempo: 3923 [ms]
+
+Archivo: DSJR500.5.txt
+Total colores: 186
+Tiempo: 4548 [ms]
+
+Archivo: DSJC1000.1.txt
+Total colores: 92
+Tiempo: 9559 [ms]
+
+Archivo: DSJR500.1c.txt
+Total colores: 471
+Tiempo: 8742 [ms]
+
+Archivo: DSJC500.9.txt
+ERROR: Timeout
+
+Archivo: flat1000_76_0.txt
+ERROR: Timeout
+
+Archivo: DSJC500.5.txt
+ERROR: Timeout
+
+Archivo: flat1000_60_0.txt
+ERROR: Timeout
+
+Archivo: flat1000_50_0.txt
+ERROR: Timeout
+
+Archivo: DSJC1000.9.txt
+ERROR: Timeout
+
+Archivo: DSJC1000.5.txt
+ERROR: Timeout
+
+
+Estadísticas Finales
+===================
+Total archivos procesados: 78
+Exitosos: 71
+Fallidos: 7
+Tiempo total de ejecución: 39.36 segundos

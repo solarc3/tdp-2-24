@@ -24,7 +24,11 @@ class BranchAndBound {
     double alpha; // Factor for marginal cost pruning
     mutable hash_set pruned_vertices;
     mutable vertex_set vertex_order;
-
+    double upBnd = 1.0; // Factor para límite superior
+    double loBnd = 3.0; // Factor para límite inferior
+    bool destructivePhaseI(ColoringState &state);
+    bool destructivePhaseII(ColoringState &state, int node, double d_star);
+    double calculateDStar(const ColoringState &state) const;
     // Método principal recursivo de B&B
     bool branchAndBoundRecursive(ColoringState &state, int targetColors);
 
