@@ -44,65 +44,62 @@ double DangerHeuristic::calculateColorDanger(const ColoringState &state,
 ColoringState DangerHeuristic::generateInitialColoring(int maxColors) {
     ColoringState state(graph, maxColors);
 
-    // Colorear vértices hasta que todos estén coloreados
-    while (!state.isComplete()) {
-        int vertex = selectNextVertex(state);
-        if (vertex == -1)
-            break; // No hay más vértices para colorear
+    // Get initial vertex ordering
+    auto orderedVertices = getInitialOrderedVertices();
+
+    for (int vertex : orderedVertices) {
+        // Skip CC-dependent vertices
+        if (isVertexCCDependent(state, vertex))
+            continue;
 
         int color = selectColor(state, vertex);
         state.assignColor(vertex, color);
+    }
+
+    // Color CC-dependent vertices last
+    for (int v = 0; v < graph.getVertexCount(); v++) {
+        if (state.getColor(v) == -1) {
+            int color = selectColor(state, v);
+            state.assignColor(v, color);
+        }
     }
 
     return state;
 }
 
 int DangerHeuristic::selectNextVertex(const ColoringState &state) const {
-    vector<pair<int, double>> vertexDangers;
-
-    // Calcular danger para vértices no coloreados
+    danger_scores.clear();
     for (int v = 0; v < graph.getVertexCount(); v++) {
         if (state.getColor(v) == -1) {
             double danger = calculateVertexDanger(state, v);
-            vertexDangers.emplace_back(v, danger);
+            danger_scores.insert({danger, v});
         }
     }
 
-    if (vertexDangers.empty())
-        return -1;
-
-    // Ordenar por danger descendente
-    sort(vertexDangers.begin(), vertexDangers.end(),
-         [](const auto &a, const auto &b) { return a.second > b.second; });
-
-    // Seleccionar aleatoriamente entre los top 3 vértices más peligrosos
-    return selectRandomFromTop(vertexDangers, 3);
+    // Simply return the vertex with highest danger score
+    if (!danger_scores.empty()) {
+        return danger_scores.rbegin()->second;
+    }
+    return -1;
 }
 
 int DangerHeuristic::selectColor(const ColoringState &state, int vertex) const {
     vector<int> availableColors = state.getAvailableColors(vertex);
     if (availableColors.empty())
-        return 0; // Retornar color 0 si no hay colores disponibles
+        return 0;
 
-    vector<pair<int, double>> colorDangers;
+    double minDanger = std::numeric_limits<double>::max();
+    int selectedColor = availableColors[0];
+
     for (int color : availableColors) {
         double danger = calculateColorDanger(state, vertex, color);
-        colorDangers.emplace_back(color, danger);
+        if (danger < minDanger) {
+            minDanger = danger;
+            selectedColor = color;
+        }
     }
 
-    // Seleccionar el color con menor danger
-    auto minDanger = min_element(
-        colorDangers.begin(), colorDangers.end(),
-        [](const auto &a, const auto &b) { return a.second < b.second; });
-
-    return minDanger->first;
-}
-
-int DangerHeuristic::selectRandomFromTop(
-    const vector<pair<int, double>> &scores, int topK) const {
-    int size = min(topK, (int)scores.size());
-    std::uniform_int_distribution<> dist(0, size - 1);
-    return scores[dist(rng)].first;
+    return selectedColor;
 }
 
 int DangerHeuristic::getDifferentColoredNeighbors(const ColoringState &state,
@@ -168,4 +165,35 @@ double DangerHeuristic::getColorShareRatio(const ColoringState &state,
     return availableColors > 0
                ? static_cast<double>(sharedColors) / availableColors
                : 1.0;
+}
+
+bool DangerHeuristic::isVertexCCDependent(const ColoringState &state,
+                                          int vertex) const {
+    int maxColor = state.getMaxUsedColor();
+    if (maxColor < 0)
+        return false;
+
+    int potentialDiff = getDifferentColoredNeighbors(state, vertex) +
+                        getUncoloredNeighbors(state, vertex);
+
+    return potentialDiff < maxColor;
+}
+
+vector<int> DangerHeuristic::getInitialOrderedVertices() const {
+    vector<pair<int, int>> vertices;
+    for (int v = 0; v < graph.getVertexCount(); v++) {
+        vertices.emplace_back(v, graph.getDegree(v));
+    }
+
+    // Sort by degree descending
+    sort(vertices.begin(), vertices.end(),
+         [](const auto &a, const auto &b) { return a.second > b.second; });
+
+    vector<int> ordered;
+    ordered.reserve(vertices.size());
+    for (const auto &[v, d] : vertices) {
+        ordered.push_back(v);
+    }
+
+    return ordered;
 }

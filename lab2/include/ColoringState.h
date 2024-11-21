@@ -10,11 +10,10 @@ class ColoringState {
 
     const Graph &graph; // Referencia al grafo original
     vector<int> colors; // Color asignado a cada vértice (-1 = sin color)
-    int numColors;      // Número de colores diferentes usados
-    int numConflicts;   // Número de conflictos actuales
-    vector<AdjList>
-        colorClass; // Vértices en cada clase de color usando hash table
-    AdjList uncoloredVertices; // Vértices sin colorear
+    int numColors;
+    int numConflicts;
+    vector<AdjList> colorClass;
+    AdjList uncoloredVertices;
 
     // Métodos privados auxiliares
     void updateConflicts();
