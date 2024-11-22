@@ -43,22 +43,17 @@ void DangerHeuristic::updateVertexScores(const ColoringState &state) {
 
 double DangerHeuristic::calculateVertexDanger(const ColoringState &state,
                                               int vertex) const {
-    // Verificar cache
     if (vertex_danger_cache.find(vertex) != vertex_danger_cache.end()) {
         return vertex_danger_cache[vertex];
     }
 
     int diffColored = getDifferentColoredNeighbors(state, vertex);
     int maxColor = state.getMaxUsedColor() + 1;
-
-    // Calcular componentes de danger
     double F = calculateF(diffColored, maxColor);
     double uncoloredTerm = params.ku * getUncoloredNeighbors(state, vertex);
     double shareRatioTerm = params.ka * getColorShareRatio(state, vertex);
-
     double danger = F + uncoloredTerm + shareRatioTerm;
     vertex_danger_cache[vertex] = danger;
-
     return danger;
 }
 
@@ -72,7 +67,6 @@ int DangerHeuristic::selectNextVertex(const ColoringState &state) const {
     if (vertex_scores.empty())
         return -1;
 
-    // Seleccionar entre los top 3 vértices con mayor danger
     size_t size = vertex_scores.size();
     size_t candidates = std::min(size_t(3), size);
 
@@ -89,10 +83,8 @@ double DangerHeuristic::calculateColorDanger(const ColoringState &state,
     if (color_danger_cache.find(key) != color_danger_cache.end()) {
         return color_danger_cache[key];
     }
-
-    // Encontrar vecino con máximo different_colored
     int maxDiffNeighbors = 0;
-    int nc = vertex; // vértice con max diffNeighbors
+    int nc = vertex;
 
     for (int v : graph.getNeighbors(vertex)) {
         if (state.getColor(v) == -1 && state.isValidAssignment(v, color)) {
@@ -120,8 +112,6 @@ int DangerHeuristic::selectColor(const ColoringState &state, int vertex) const {
     auto colors = state.getAvailableColors(vertex);
     if (colors.empty())
         return 0;
-
-    // Seleccionar color con menor danger
     double minDanger = std::numeric_limits<double>::max();
     int selectedColor = colors[0];
 
@@ -163,19 +153,14 @@ double DangerHeuristic::getColorShareRatio(const ColoringState &state,
     vector<bool> colorAvailable(state.getNumColors() + 1, true);
     int availableCount = 0;
     int sharedCount = 0;
-
-    // Marcar colores no disponibles por vecinos
     for (int neighbor : graph.getNeighbors(vertex)) {
         int color = state.getColor(neighbor);
         if (color != -1)
             colorAvailable[color] = false;
     }
-
-    // Contar colores disponibles y compartidos
     for (size_t color = 0; color < colorAvailable.size(); color++) {
         if (colorAvailable[color]) {
             availableCount++;
-            // Verificar si algún vecino no coloreado puede usar este color
             bool shared = false;
             for (int neighbor : graph.getNeighbors(vertex)) {
                 if (state.getColor(neighbor) == -1 &&
