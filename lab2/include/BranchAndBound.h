@@ -1,11 +1,16 @@
 // BranchAndBound.h
 #pragma once
+#include "../include/BranchAndBound.h"
 #include "Bounds.h"
 #include "ColoringState.h"
 #include "DangerHeuristic.h"
 #include "Graph.h"
+#include <cmath> // Para std::pow
 #include <ext/pb_ds/assoc_container.hpp>
 #include <ext/pb_ds/tree_policy.hpp>
+#include <functional> // Para std::less
+#include <limits>
+#include <random>
 #include <vector>
 using namespace __gnu_pbds;
 
@@ -15,10 +20,13 @@ class BranchAndBound {
     Bounds &bounds;
     DangerHeuristic &dangerHeuristic;
     mutable cc_hash_table<int, null_type, hash<int>> pruned_vertices;
-
-    // Para usar el set ordenado para los colores disponibles
-    using ordered_set = tree<int, null_type, std::less<int>, rb_tree_tag,
+    mutable std::mt19937 gen;
+    template <typename T>
+    using ordered_set = tree<T, null_type, std::less<T>, rb_tree_tag,
                              tree_order_statistics_node_update>;
+
+    template <typename T> using gp_hash_table = gp_hash_table<T, null_type>;
+
     using color_set = cc_hash_table<int, null_type, hash<int>>;
 
     // Métodos para d*
@@ -26,7 +34,7 @@ class BranchAndBound {
     int getMaxIndependentSetSize() const;
     int findBacktrackingDepth(int currentK) const;
     bool branchAndBoundRecursive(ColoringState &state, int targetColors,
-                                 int maxBacktrackDepth);
+                                 int maxBacktrackDepth, int depth);
     bool shouldPrune(const ColoringState &state, int vertex, int color) const;
     int selectBestVertex(const ColoringState &state) const;
     color_set getAvailableColorsSet(const ColoringState &state,
@@ -34,6 +42,7 @@ class BranchAndBound {
 
     public:
     BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &d)
-        : graph(g), bounds(b), dangerHeuristic(d) {}
+        : graph(g), bounds(b), dangerHeuristic(d), gen(std::random_device{}()) {
+    }
     void solve(ColoringState &solution);
 };

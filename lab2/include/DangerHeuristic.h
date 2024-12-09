@@ -3,14 +3,21 @@
 #include "ColoringState.h"
 #include "Graph.h"
 #include <cmath>
+#include <ext/pb_ds/priority_queue.hpp>
 #include <random>
-
 class DangerHeuristic {
     using ColorSet = cc_hash_table<int, null_type, hash<int>>;
 
     using ScoredVertices =
         tree<pair<double, int>, null_type, less<pair<double, int>>, rb_tree_tag,
              tree_order_statistics_node_update>;
+    template <typename T>
+    using ordered_set = tree<T, null_type, std::less<T>, rb_tree_tag,
+                             tree_order_statistics_node_update>;
+    using priority_queue_t =
+        __gnu_pbds::priority_queue<std::pair<double, int>,
+                                   std::less<std::pair<double, int>>,
+                                   pairing_heap_tag>;
 
     private:
     const Graph &graph;

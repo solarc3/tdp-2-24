@@ -4,50 +4,48 @@
 ColoringState::ColoringState(const Graph &g, int initialColors)
     : graph(g), colors(g.getVertexCount(), -1), numColors(0), numConflicts(0),
       colorClass(initialColors) {
-    for (int v = 0; v < graph.getVertexCount(); v++) {
+    for (int v = 0; v < graph.getVertexCount(); ++v) {
         uncoloredVertices.insert(v);
     }
 }
 
 void ColoringState::assignColor(int vertex, int color) {
-    if (vertex < 0 || vertex >= graph.getVertexCount() || color < 0) {
-        throw std::invalid_argument("Invalid vertex or color");
-    }
-
     int oldColor = colors[vertex];
 
-    // Si el vértice ya tenía un color
     if (oldColor != -1) {
-        // Asegurar que oldColor es válido antes de acceder
-        if (oldColor < (int)colorClass.size()) {
-            colorClass[oldColor].erase(vertex);
+        colorClass[oldColor].erase(vertex);
+        // Decrease conflicts with neighbors of the old color
+        for (int neighbor : graph.getNeighbors(vertex)) {
+            if (colors[neighbor] == oldColor) {
+                numConflicts--;
+            }
         }
     } else {
         uncoloredVertices.erase(vertex);
     }
 
-    // Asegurar que el nuevo color tenga espacio en colorClass
-    if (color >= (int)colorClass.size()) {
+    // Ensure the colorClass vector is large enough
+    if (color >= static_cast<int>(colorClass.size())) {
         colorClass.resize(color + 1);
     }
 
     colors[vertex] = color;
     colorClass[color].insert(vertex);
 
-    // Actualizar numColors
+    // Update numColors
     if (color >= numColors) {
         numColors = color + 1;
     }
 
-    updateConflicts();
+    // Increase conflicts with neighbors of the new color
+    for (int neighbor : graph.getNeighbors(vertex)) {
+        if (colors[neighbor] == color) {
+            numConflicts++;
+        }
+    }
 }
 
 bool ColoringState::isValidAssignment(int vertex, int color) const {
-    if (vertex < 0 || vertex >= graph.getVertexCount() || color < 0) {
-        return false;
-    }
-
-    // Revisar si algún vecino tiene el mismo color
     for (int neighbor : graph.getNeighbors(vertex)) {
         if (colors[neighbor] == color) {
             return false;
@@ -56,18 +54,17 @@ bool ColoringState::isValidAssignment(int vertex, int color) const {
     return true;
 }
 
-vector<int> ColoringState::getAvailableColors(int vertex) const {
-    vector<bool> usedColors(numColors + 1, false);
-    // Marcar colores usados por los vecinos
+std::vector<int> ColoringState::getAvailableColors(int vertex) const {
+    std::vector<bool> usedColors(numColors + 1, false);
     for (int neighbor : graph.getNeighbors(vertex)) {
-        if (colors[neighbor] != -1) {
-            usedColors[colors[neighbor]] = true;
+        int neighborColor = colors[neighbor];
+        if (neighborColor != -1) {
+            usedColors[neighborColor] = true;
         }
     }
 
-    // Recolectar colores disponibles
-    vector<int> available;
-    for (int c = 0; c < numColors + 1; c++) {
+    std::vector<int> available;
+    for (int c = 0; c <= numColors; ++c) {
         if (!usedColors[c]) {
             available.push_back(c);
         }
@@ -75,91 +72,68 @@ vector<int> ColoringState::getAvailableColors(int vertex) const {
     return available;
 }
 
-void ColoringState::updateConflicts() {
-    numConflicts = 0;
-    for (int v = 0; v < graph.getVertexCount(); v++) {
-        if (isConflicting(v)) {
-            numConflicts++;
-        }
-    }
-}
-
 bool ColoringState::isConflicting(int vertex) const {
-    if (colors[vertex] == -1)
+    int vertexColor = colors[vertex];
+    if (vertexColor == -1)
         return false;
 
     for (int neighbor : graph.getNeighbors(vertex)) {
-        if (colors[neighbor] == colors[vertex]) {
+        if (colors[neighbor] == vertexColor) {
             return true;
         }
     }
     return false;
 }
 
-vector<int> ColoringState::getVerticesWithColor(int color) const {
-    vector<int> vertices;
-    if (color >= 0 && color < (int)colorClass.size()) {
-        vertices.reserve(colorClass[color].size());
-        for (const auto &vertex : colorClass[color]) {
-            vertices.push_back(vertex);
-        }
+std::vector<int> ColoringState::getVerticesWithColor(int color) const {
+    if (color >= 0 && color < static_cast<int>(colorClass.size())) {
+        return std::vector<int>(colorClass[color].begin(),
+                                colorClass[color].end());
     }
-    return vertices;
+    return {};
 }
 
 int ColoringState::getMaxUsedColor() const { return numColors - 1; }
 
 int ColoringState::getDeltaConflicts(int vertex, int newColor) const {
-    if (colors[vertex] == newColor)
-        return 0;
-
     int delta = 0;
-    // Restar conflictos actuales
+    int currentColor = colors[vertex];
+
     for (int neighbor : graph.getNeighbors(vertex)) {
-        if (colors[neighbor] == colors[vertex]) {
-            delta--;
+        int neighborColor = colors[neighbor];
+        if (neighborColor == currentColor && currentColor != -1) {
+            delta--; // Removing a conflict
+        }
+        if (neighborColor == newColor && newColor != -1) {
+            delta++; // Adding a conflict
         }
     }
-
-    // Sumar nuevos conflictos potenciales
-    for (int neighbor : graph.getNeighbors(vertex)) {
-        if (colors[neighbor] == newColor) {
-            delta++;
-        }
-    }
-
     return delta;
 }
 
-vector<pair<int, int>> ColoringState::getConflictingPairs() const {
-    vector<pair<int, int>> conflicts;
-    for (int v = 0; v < graph.getVertexCount(); v++) {
-        if (colors[v] == -1)
-            continue;
+void ColoringState::unassignColor(int vertex) {
+    int color = colors[vertex];
+    if (color != -1) {
+        colorClass[color].erase(vertex);
+        colors[vertex] = -1;
+        uncoloredVertices.insert(vertex);
 
-        for (int u : graph.getNeighbors(v)) {
-            if (u > v && colors[u] == colors[v]) {
-                conflicts.emplace_back(v, u);
+        // Decrease conflicts with neighbors of the old color
+        for (int neighbor : graph.getNeighbors(vertex)) {
+            if (colors[neighbor] == color) {
+                numConflicts--;
             }
         }
     }
-    return conflicts;
 }
 
 void ColoringState::print() const {
-    cout << "Current coloring state:" << endl;
-    for (int v = 0; v < graph.getVertexCount(); v++) {
-        cout << "Vertex " << v << ": Color " << colors[v] << endl;
+    std::cout << "Current coloring state:" << std::endl;
+    for (int v = 0; v < graph.getVertexCount(); ++v) {
+        std::cout << "Vertex " << v << ": Color " << colors[v] << std::endl;
     }
-    cout << "Number of colors used: " << numColors << endl;
-    cout << "Number of conflicts: " << numConflicts << endl;
-    cout << "Uncolored vertices: " << uncoloredVertices.size() << endl;
-}
-void ColoringState::unassignColor(int vertex) {
-    if (colors[vertex] != -1) {
-        colorClass[colors[vertex]].erase(vertex);
-        colors[vertex] = -1;
-        uncoloredVertices.insert(vertex);
-        updateConflicts();
-    }
+    std::cout << "Number of colors used: " << numColors << std::endl;
+    std::cout << "Number of conflicts: " << numConflicts << std::endl;
+    std::cout << "Uncolored vertices: " << uncoloredVertices.size()
+              << std::endl;
 }
