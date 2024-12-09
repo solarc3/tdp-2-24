@@ -92,3 +92,7 @@ int Graph::getMaxDegree() {
     }
     return maxDegree;
 }
+
+bool Graph::areNeighbors(int a, int b) const {
+    return adj[a].find(b) != adj[a].end();
+}

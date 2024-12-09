@@ -6,6 +6,16 @@
 #include <ext/pb_ds/priority_queue.hpp>
 #include <random>
 class DangerHeuristic {
+    struct pair_hash {
+        template <class T1, class T2>
+        std::size_t operator()(const std::pair<T1, T2> &pair) const {
+            return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
+        }
+    };
+    const Graph &graph;
+    mutable std::unordered_map<int, double> vertexDangerCache;
+    mutable std::unordered_map<std::pair<int, int>, double, pair_hash>
+        colorDangerCache;
     using ColorSet = cc_hash_table<int, null_type, hash<int>>;
 
     using ScoredVertices =
@@ -19,8 +29,6 @@ class DangerHeuristic {
                                    std::less<std::pair<double, int>>,
                                    pairing_heap_tag>;
 
-    private:
-    const Graph &graph;
     const double C = 1.0;
     const double k = 1.0;
     const double ku = 0.025;
@@ -48,4 +56,5 @@ class DangerHeuristic {
                                      int vertex) const;
     int getUncoloredNeighbors(const ColoringState &state, int vertex) const;
     double getColorShareRatio(const ColoringState &state, int vertex) const;
+    void clearCaches();
 };

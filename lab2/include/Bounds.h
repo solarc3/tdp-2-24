@@ -1,9 +1,10 @@
 #pragma once
 #include "Graph.h"
 #include <set>
+#include <unordered_set>
 #include <vector>
 using namespace std;
-
+#include <climits>
 class Bounds {
     private:
     const Graph &graph;
@@ -25,4 +26,6 @@ class Bounds {
     // Actualizadores de cotas
     void updateLowerBound(int newLowerBound);
     void updateUpperBound(int newUpperBound);
+    void bronKerbosch(unordered_set<int> R, unordered_set<int> P,
+                      unordered_set<int> X, size_t &maxCliqueSize);
 };

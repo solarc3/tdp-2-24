@@ -1,4 +1,5 @@
 #include "../include/BranchAndBound.h"
+
 BranchAndBound::color_set
 BranchAndBound::getAvailableColorsSet(const ColoringState &state,
                                       int vertex) const {
@@ -38,18 +39,10 @@ void BranchAndBound::solve(ColoringState &solution) {
                                     0)) {
             std::cout << "¡Solución encontrada con " << currentK << " colores!"
                       << std::endl;
-
-            // Update the solution and upper bound
             solution = currentState;
             bounds.updateUpperBound(currentK);
-
-            // Try with fewer colors
             currentK--;
         } else {
-            std::cout << "No se encontró solución con " << currentK
-                      << " colores." << std::endl;
-
-            // Update lower bound and try with more colors
             bounds.updateLowerBound(currentK + 1);
             currentK++;
         }
@@ -89,7 +82,7 @@ bool BranchAndBound::shouldPrune(const ColoringState &state, int vertex,
     }
     saturation = neighborColors.size();
 
-    const double saturationThreshold = 0.7;
+    const double saturationThreshold = 0.8;
     return saturation > (maxColor * saturationThreshold);
 }
 int BranchAndBound::selectBestVertex(const ColoringState &state) const {
@@ -131,30 +124,58 @@ bool BranchAndBound::branchAndBoundRecursive(ColoringState &state,
         return state.isLegal();
     }
 
-    int vertex = selectBestVertex(state);
+    // Actualiza la cola de prioridad si es necesario
+    if (vertexQueue.empty()) {
+        for (int v = 0; v < graph.getVertexCount(); ++v) {
+            if (state.getColor(v) == -1 &&
+                pruned_vertices.find(v) == pruned_vertices.end()) {
+                auto availableColors = state.getAvailableColors(v);
+                if (availableColors.empty()) {
+                    pruned_vertices.insert(v);
+                    continue;
+                }
+                double danger = dangerHeuristic.calculateVertexDanger(state, v);
+                vertexQueue.push({v, availableColors.size(), danger});
+            }
+        }
+    }
+
+    if (vertexQueue.empty()) {
+        return false;
+    }
+
+    // Selecciona el mejor vértice
+    VertexInfo vi = vertexQueue.top();
+    vertexQueue.pop();
+    int vertex = vi.vertex;
     if (vertex == -1) {
         return false;
     }
 
-    std::vector<std::pair<int, double>> orderedColors;
     auto availableColors = state.getAvailableColors(vertex);
+    if (availableColors.empty()) {
+        return false;
+    }
 
-    for (const auto &color : availableColors) {
+    typedef tree<double, int, std::less<double>, rb_tree_tag,
+                 tree_order_statistics_node_update>
+        OrderedColorSet;
+    OrderedColorSet colorSet;
+
+    for (int color : availableColors) {
         if (color >= targetColors) {
             continue;
         }
-
         if (state.isValidAssignment(vertex, color) &&
             !shouldPrune(state, vertex, color)) {
             double danger =
                 dangerHeuristic.calculateColorDanger(state, vertex, color);
-            orderedColors.emplace_back(color, danger);
+            colorSet.insert({danger, color});
         }
     }
-    std::sort(orderedColors.begin(), orderedColors.end(),
-              [](const auto &a, const auto &b) { return a.second < b.second; });
 
-    for (const auto &[color, danger] : orderedColors) {
+    for (const auto &entry : colorSet) {
+        int color = entry.second;
         state.assignColor(vertex, color);
 
         if (branchAndBoundRecursive(state, targetColors, maxBacktrackDepth,

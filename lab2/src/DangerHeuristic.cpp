@@ -5,25 +5,43 @@ DangerHeuristic::DangerHeuristic(const Graph &g)
 
 double DangerHeuristic::calculateVertexDanger(const ColoringState &state,
                                               int vertex) const {
+    // Verifica si el valor ya está en la caché
+    auto it = vertexDangerCache.find(vertex);
+    if (it != vertexDangerCache.end()) {
+        return it->second;
+    }
+
     double maxColor = state.getMaxUsedColor() + 1;
     double differentColored = getDifferentColoredNeighbors(state, vertex);
 
-    // Prevent division by zero
+    // Evita división por cero
     if (maxColor - differentColored == 0) {
-        return std::numeric_limits<double>::max();
+        vertexDangerCache[vertex] = std::numeric_limits<double>::max();
+        return vertexDangerCache[vertex];
     }
 
-    // F(y) = C / (maxColor - y)^k where y is differentColored
+    // Cálculo del peligro
     double F = C / std::pow(maxColor - differentColored, k);
     double uncoloredTerm = ku * getUncoloredNeighbors(state, vertex);
     double shareRatioTerm = ka * getColorShareRatio(state, vertex);
 
-    return F + uncoloredTerm + shareRatioTerm;
-}
+    double danger = F + uncoloredTerm + shareRatioTerm;
 
+    // Almacena el valor en la caché
+    vertexDangerCache[vertex] = danger;
+    return danger;
+}
+void DangerHeuristic::clearCaches() {
+    vertexDangerCache.clear();
+    colorDangerCache.clear();
+}
 double DangerHeuristic::calculateColorDanger(const ColoringState &state,
                                              int vertex, int color) const {
-    // Find the neighbor with the maximum number of different colored neighbors
+    std::pair<int, int> key = {vertex, color};
+    auto it = colorDangerCache.find(key);
+    if (it != colorDangerCache.end()) {
+        return it->second;
+    }
     int maxDiffNeighbors = 0;
     int nc = vertex; // Initialize with the current vertex
 
@@ -49,7 +67,9 @@ double DangerHeuristic::calculateColorDanger(const ColoringState &state,
     double uncoloredTerm = k3 * getUncoloredNeighbors(state, nc);
     double frequencyTerm = k4 * state.getVerticesWithColor(color).size();
 
-    return diffNeighborsTerm + uncoloredTerm - frequencyTerm;
+    double danger = diffNeighborsTerm + uncoloredTerm - frequencyTerm;
+    colorDangerCache[key] = danger;
+    return danger;
 }
 
 ColoringState DangerHeuristic::generateInitialColoring(int maxColors) {

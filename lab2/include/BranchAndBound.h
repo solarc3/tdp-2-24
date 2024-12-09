@@ -7,15 +7,29 @@
 #include "Graph.h"
 #include <cmath> // Para std::pow
 #include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
 #include <ext/pb_ds/tree_policy.hpp>
 #include <functional> // Para std::less
 #include <limits>
 #include <random>
 #include <vector>
+
 using namespace __gnu_pbds;
 
 class BranchAndBound {
-    private:
+    struct VertexInfo {
+        int vertex;
+        size_t availableColors;
+        double danger;
+        bool operator<(const VertexInfo &other) const {
+            if (availableColors != other.availableColors)
+                return availableColors > other.availableColors;
+
+            return danger < other.danger;
+        }
+    };
+    typedef __gnu_pbds::priority_queue<VertexInfo> VertexQueue;
+    VertexQueue vertexQueue;
     const Graph &graph;
     Bounds &bounds;
     DangerHeuristic &dangerHeuristic;

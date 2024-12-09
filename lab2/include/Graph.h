@@ -25,4 +25,5 @@ class Graph {
     bool createFromFile(const string &fileName);
     void printGraph();
     int getMaxDegree();
+    bool areNeighbors(int a, int b) const;
 };
