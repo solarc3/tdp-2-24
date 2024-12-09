@@ -46,8 +46,8 @@ void BranchAndBound::solve(ColoringState &solution) {
 
         // Intentar encontrar solución con currentK colores
         if (branchAndBoundRecursive(newState, currentK)) {
-            // Actualizar mejor solución y cotas
-            bounds.updateUpperBound(currentK, newState);
+            // Actualizar cota superior y mejor solución
+            bounds.updateUpperBound(currentK);
             bestSolution = newState;
             // Intentar con menos colores
             currentK--;
@@ -61,7 +61,6 @@ void BranchAndBound::solve(ColoringState &solution) {
     // Actualizar la solución final
     solution = bestSolution;
 }
-
 bool BranchAndBound::branchAndBoundRecursive(ColoringState &state,
                                              int targetColors) {
     // Si el estado está completo y es legal, encontramos una solución válida
@@ -131,7 +130,6 @@ bool BranchAndBound::shouldPrune(const ColoringState &state, int vertex,
     }
 
     // Verificar si quedan suficientes colores disponibles para los vértices
-    // restantes
     int uncoloredNeighbors = 0;
     set<int> availableColors;
 

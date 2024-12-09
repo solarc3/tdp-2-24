@@ -1,44 +1,30 @@
 #pragma once
-#include "ColoringState.h"
-#include "DangerHeuristic.h"
 #include "Graph.h"
-#include <queue>
+#include <set>
 #include <vector>
+using namespace std;
 
 class Bounds {
     private:
     const Graph &graph;
-    int lowerBound; // Cota inferior (tamaño del clique máximo encontrado)
-    int upperBound; // Cota superior (colores usados por la heurística DANGER)
-    vector<int> maxClique; // Vértices del clique máximo encontrado
-    std::unique_ptr<ColoringState> bestColoring; // Mejor coloreo encontrado
+    int lowerBound;
+    int upperBound;
+    vector<int> maxClique;
 
-    // Método privado para encontrar un clique grande heurísticamente
-    vector<int> findMaximalClique() const;
-
-    // Método para ordenar vértices por grado para búsqueda de clique
-    vector<pair<int, int>> getVerticesByDegree() const;
-
-    // Calcula cota superior usando la heurística DANGER
-    int calculateUpperBound();
+    // Métodos privados para calcular cotas
+    vector<int> findMaximalClique();
+    int calculateDSaturBound();
 
     public:
-    Bounds(const Graph &g);
+    // Constructor
+    explicit Bounds(const Graph &g);
 
-    // Getters para las cotas
-    int getLowerBound() const { return lowerBound; }
-    int getUpperBound() const { return upperBound; }
+    // Getters
+    int getLowerBound() const;
+    int getUpperBound() const;
+    const vector<int> &getMaxClique() const;
 
-    // Obtener el clique máximo encontrado
-    const vector<int> &getMaxClique() const { return maxClique; }
-
-    // Obtener el mejor coloreo encontrado
-    const ColoringState *getBestColoring() const { return bestColoring.get(); }
-
-    // Actualizar cotas
+    // Métodos para actualizar cotas
     void updateLowerBound(int newBound);
-    void updateUpperBound(int newBound, const ColoringState &coloring);
-
-    // Verificar si un coloreo con k colores es factible
-    bool isFeasible(int k) const { return k >= lowerBound; }
+    void updateUpperBound(int newBound);
 };

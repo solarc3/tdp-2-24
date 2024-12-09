@@ -53,31 +53,37 @@ void Graph::clear() {
 bool Graph::createFromFile(const string &fileName) {
     ifstream file(fileName);
     if (!file.is_open()) {
-        cout << "No se pudo abrir el archivo " << fileName << endl;
+        cerr << "No se pudo abrir el archivo " << fileName << endl;
         return false;
     }
-    vpii edges;
+
+    // Primera pasada: encontrar el máximo vértice para determinar el tamaño
+    int maxVertex = 0;
+    vector<pair<int, int>> edges;
     int v, w;
+
     while (file >> v >> w) {
+        maxVertex = max(maxVertex, max(v, w));
         edges.push_back({v, w});
     }
-    int maxVertex = 0;
-    for (const auto &edge : edges) {
-        maxVertex = std::max(maxVertex, std::max(edge.first, edge.second));
-    }
+
+    // Inicializar el grafo con el tamaño correcto
     this->vertexCount = maxVertex;
-    this->adj = vector<AdjList>(maxVertex);
+    this->adj = vector<AdjList>(vertexCount);
     this->edgeCount = 0;
-    // formato DIMACS no dirigido
+
+    // Segunda pasada: agregar las aristas (convertir de base-1 a base-0)
     for (const auto &edge : edges) {
-        this->addEdge(edge.first - 1, edge.second - 1);
-        this->addEdge(edge.second - 1, edge.first - 1);
+        addEdge(edge.first - 1, edge.second - 1); // Convertir a base-0
+        addEdge(edge.second - 1, edge.first - 1); // Grafo no dirigido
     }
 
-    std::cout << "total de aristas: " << edges.size() << std::endl;
-    std::cout << "total de vertices: " << maxVertex << std::endl;
-    this->printGraph();
+    cout << "Grafo cargado exitosamente:" << endl;
+    cout << "Vertices: " << vertexCount << endl;
+    cout << "Aristas: " << edgeCount / 2
+         << endl; // División por 2 porque cada arista se cuenta dos veces
 
+    file.close();
     return true;
 }
 

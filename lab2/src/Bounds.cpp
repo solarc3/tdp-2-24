@@ -1,63 +1,109 @@
-// Bounds.cpp
 #include "../include/Bounds.h"
 
-Bounds::Bounds(const Graph &g)
-    : graph(g), lowerBound(1), upperBound(g.getVertexCount()),
-      bestColoring(nullptr) {
-
+Bounds::Bounds(const Graph &g) : graph(g) {
     maxClique = findMaximalClique();
     lowerBound = maxClique.size();
-    upperBound = calculateUpperBound();
+    upperBound = calculateDSaturBound();
 }
 
-vector<int> Bounds::findMaximalClique() const {
+vector<int> Bounds::findMaximalClique() {
     vector<int> clique;
-    auto vertices = getVerticesByDegree();
-    sort(vertices.begin(), vertices.end(),
-         [](const auto &a, const auto &b) { return a.second > b.second; });
+    vector<bool> inClique(graph.getVertexCount(), false);
 
-    for (const auto &[vertex, degree] : vertices) {
+    // Ordenar vértices por grado
+    vector<pair<int, int>> vertices;
+    for (int v = 0; v < graph.getVertexCount(); v++) {
+        vertices.push_back({graph.getDegree(v), v});
+    }
+    sort(vertices.rbegin(), vertices.rend());
+
+    // Construir clique
+    for (const auto &[degree, v] : vertices) {
         bool canAdd = true;
-        for (int v : clique) {
-            if (!graph.hasEdge(vertex, v)) {
+        for (int u : clique) {
+            if (!graph.hasEdge(v, u)) {
                 canAdd = false;
                 break;
             }
         }
         if (canAdd) {
-            clique.push_back(vertex);
+            clique.push_back(v);
+            inClique[v] = true;
         }
     }
 
     return clique;
 }
 
-vector<pair<int, int>> Bounds::getVerticesByDegree() const {
-    vector<pair<int, int>> vertices;
-    vertices.reserve(graph.getVertexCount());
+int Bounds::calculateDSaturBound() {
+    vector<int> colors(graph.getVertexCount(), -1);
+    vector<set<int>> saturation(
+        graph.getVertexCount()); // Colores usados por vecinos
 
+    // Comenzar con el vértice de mayor grado
+    int maxDegree = -1;
+    int firstVertex = 0;
     for (int v = 0; v < graph.getVertexCount(); v++) {
-        vertices.emplace_back(v, graph.getDegree(v));
-    }
-
-    return vertices;
-}
-
-int Bounds::calculateUpperBound() {
-    DangerHeuristic danger(graph);
-    auto coloring = danger.generateInitialColoring(graph.getVertexCount());
-
-    if (!bestColoring ||
-        coloring.getNumColors() < bestColoring->getNumColors()) {
-        bestColoring =
-            std::make_unique<ColoringState>(graph, coloring.getNumColors());
-        for (int v = 0; v < graph.getVertexCount(); v++) {
-            bestColoring->assignColor(v, coloring.getColor(v));
+        int degree = graph.getDegree(v);
+        if (degree > maxDegree) {
+            maxDegree = degree;
+            firstVertex = v;
         }
     }
 
-    return coloring.getNumColors();
+    colors[firstVertex] = 0;
+    int maxColorUsed = 0;
+
+    // Actualizar saturación de vecinos
+    for (int u : graph.getNeighbors(firstVertex)) {
+        saturation[u].insert(0);
+    }
+
+    // Colorear resto de vértices
+    for (int i = 1; i < graph.getVertexCount(); i++) {
+        // Seleccionar vértice con mayor saturación
+        int maxSat = -1;
+        int maxDeg = -1;
+        int nextVertex = -1;
+
+        for (int v = 0; v < graph.getVertexCount(); v++) {
+            if (colors[v] != -1)
+                continue;
+
+            int sat = saturation[v].size();
+            int deg = graph.getDegree(v);
+
+            if (sat > maxSat || (sat == maxSat && deg > maxDeg)) {
+                maxSat = sat;
+                maxDeg = deg;
+                nextVertex = v;
+            }
+        }
+
+        // Encontrar el menor color disponible
+        int color = 0;
+        while (saturation[nextVertex].count(color))
+            color++;
+
+        colors[nextVertex] = color;
+        maxColorUsed = max(maxColorUsed, color);
+
+        // Actualizar saturación de vecinos
+        for (int u : graph.getNeighbors(nextVertex)) {
+            if (colors[u] == -1) {
+                saturation[u].insert(color);
+            }
+        }
+    }
+
+    return maxColorUsed + 1;
 }
+
+int Bounds::getLowerBound() const { return lowerBound; }
+
+int Bounds::getUpperBound() const { return upperBound; }
+
+const vector<int> &Bounds::getMaxClique() const { return maxClique; }
 
 void Bounds::updateLowerBound(int newBound) {
     if (newBound > lowerBound) {
@@ -65,13 +111,8 @@ void Bounds::updateLowerBound(int newBound) {
     }
 }
 
-void Bounds::updateUpperBound(int newBound, const ColoringState &coloring) {
+void Bounds::updateUpperBound(int newBound) {
     if (newBound < upperBound) {
         upperBound = newBound;
-        bestColoring =
-            std::make_unique<ColoringState>(graph, coloring.getNumColors());
-        for (int v = 0; v < graph.getVertexCount(); v++) {
-            bestColoring->assignColor(v, coloring.getColor(v));
-        }
     }
 }
