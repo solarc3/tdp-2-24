@@ -160,3 +160,11 @@ void ColoringState::print() const {
     cout << "Number of conflicts: " << numConflicts << endl;
     cout << "Uncolored vertices: " << uncoloredVertices.size() << endl;
 }
+void ColoringState::unassignColor(int vertex) {
+    if (colors[vertex] != -1) {
+        colorClass[colors[vertex]].erase(vertex);
+        colors[vertex] = -1;
+        uncoloredVertices.insert(vertex);
+        updateConflicts();
+    }
+}

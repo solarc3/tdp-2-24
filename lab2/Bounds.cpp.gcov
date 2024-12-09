@@ -1,0 +1,76 @@
+        -:    0:Source:src/Bounds.cpp
+        -:    1:// Bounds.cpp
+        -:    2:#include "../include/Bounds.h"
+        -:    3:
+        2:    4:Bounds::Bounds(const Graph &g)
+        2:    5:    : graph(g), lowerBound(1), upperBound(g.getVertexCount()),
+        -:    6:      bestColoring(nullptr) {
+        -:    7:
+        4:    8:    maxClique = findMaximalClique();
+        2:    9:    lowerBound = maxClique.size();
+        2:   10:    upperBound = calculateUpperBound();
+        2:   11:}
+        -:   12:
+        2:   13:vector<int> Bounds::findMaximalClique() const {
+        -:   14:    vector<int> clique;
+        2:   15:    auto vertices = getVerticesByDegree();
+        2:   16:    sort(vertices.begin(), vertices.end(),
+    2644*:   17:         [](const auto &a, const auto &b) { return a.second > b.second; });
+        -:   18:
+      288:   19:    for (const auto &[vertex, degree] : vertices) {
+        -:   20:        bool canAdd = true;
+      428:   21:        for (int v : clique) {
+      424:   22:            if (!graph.hasEdge(vertex, v)) {
+        -:   23:                canAdd = false;
+        -:   24:                break;
+        -:   25:            }
+        -:   26:        }
+      286:   27:        if (canAdd) {
+        -:   28:            clique.push_back(vertex);
+        -:   29:        }
+        -:   30:    }
+        -:   31:
+        2:   32:    return clique;
+        -:   33:}
+        -:   34:
+        2:   35:vector<pair<int, int>> Bounds::getVerticesByDegree() const {
+        -:   36:    vector<pair<int, int>> vertices;
+        2:   37:    vertices.reserve(graph.getVertexCount());
+      288:   38:    for (int v = 0; v < graph.getVertexCount(); v++) {
+      286:   39:        vertices.emplace_back(v, graph.getDegree(v));
+        -:   40:    }
+        -:   41:
+        2:   42:    return vertices;
+        -:   43:}
+        -:   44:
+        2:   45:int Bounds::calculateUpperBound() {
+        2:   46:    DangerHeuristic danger(graph);
+        2:   47:    auto coloring = danger.generateInitialColoring(graph.getVertexCount());
+       2*:   48:    if (!bestColoring ||
+        -:   49:        coloring.getNumColors() < bestColoring->getNumColors()) {
+        -:   50:        bestColoring =
+        4:   51:            std::make_unique<ColoringState>(graph, coloring.getNumColors());
+      288:   52:        for (int v = 0; v < graph.getVertexCount(); v++) {
+      286:   53:            bestColoring->assignColor(v, coloring.getColor(v));
+        -:   54:        }
+        -:   55:    }
+        -:   56:
+        2:   57:    return coloring.getNumColors();
+        2:   58:}
+        -:   59:
+        2:   60:void Bounds::updateLowerBound(int newBound) {
+        2:   61:    if (newBound > lowerBound) {
+        2:   62:        lowerBound = newBound;
+        -:   63:    }
+        2:   64:}
+        -:   65:
+    #####:   66:void Bounds::updateUpperBound(int newBound, const ColoringState &coloring) {
+    #####:   67:    if (newBound < upperBound) {
+    #####:   68:        upperBound = newBound;
+        -:   69:        bestColoring =
+    #####:   70:            std::make_unique<ColoringState>(graph, coloring.getNumColors());
+    #####:   71:        for (int v = 0; v < graph.getVertexCount(); v++) {
+    #####:   72:            bestColoring->assignColor(v, coloring.getColor(v));
+        -:   73:        }
+        -:   74:    }
+    #####:   75:}

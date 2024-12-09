@@ -1,0 +1,161 @@
+        -:    0:Source:src/ColoringState.cpp
+        -:    1:// ColoringState.cpp
+        -:    2:#include "../include/ColoringState.h"
+        -:    3:
+       13:    4:ColoringState::ColoringState(const Graph &g, int initialColors)
+       13:    5:    : graph(g), colors(g.getVertexCount(), -1), numColors(0), numConflicts(0),
+       13:    6:      colorClass(initialColors) {
+     1729:    7:    for (int v = 0; v < graph.getVertexCount(); v++) {
+     1716:    8:        uncoloredVertices.insert(v);
+        -:    9:    }
+       13:   10:}
+        -:   11:
+      858:   12:void ColoringState::assignColor(int vertex, int color) {
+      858:   13:    if (vertex < 0 || vertex >= graph.getVertexCount() || color < 0) {
+    #####:   14:        throw std::invalid_argument("Invalid vertex or color");
+        -:   15:    }
+        -:   16:
+      858:   17:    int oldColor = colors[vertex];
+        -:   18:
+        -:   19:    // Si el vértice ya tenía un color
+      858:   20:    if (oldColor != -1) {
+        -:   21:        // Asegurar que oldColor es válido antes de acceder
+    #####:   22:        if (oldColor < (int)colorClass.size()) {
+    #####:   23:            colorClass[oldColor].erase(vertex);
+        -:   24:        }
+        -:   25:    } else {
+      858:   26:        uncoloredVertices.erase(vertex);
+        -:   27:    }
+        -:   28:
+        -:   29:    // Asegurar que el nuevo color tenga espacio en colorClass
+      858:   30:    if (color >= (int)colorClass.size()) {
+    #####:   31:        colorClass.resize(color + 1);
+        -:   32:    }
+        -:   33:
+      858:   34:    colors[vertex] = color;
+      858:   35:    colorClass[color].insert(vertex);
+        -:   36:
+        -:   37:    // Actualizar numColors
+      858:   38:    if (color >= numColors) {
+      103:   39:        numColors = color + 1;
+        -:   40:    }
+        -:   41:
+      858:   42:    updateConflicts();
+      858:   43:}
+        -:   44:
+    35059:   45:bool ColoringState::isValidAssignment(int vertex, int color) const {
+    35059:   46:    if (vertex < 0 || vertex >= graph.getVertexCount() || color < 0) {
+    #####:   47:        return false;
+        -:   48:    }
+        -:   49:
+        -:   50:    // Revisar si algún vecino tiene el mismo color
+  1052784:   51:    for (int neighbor : graph.getNeighbors(vertex)) {
+  1034404:   52:        if (colors[neighbor] == color) {
+        -:   53:            return false;
+        -:   54:        }
+        -:   55:    }
+    18380:   56:    return true;
+        -:   57:}
+        -:   58:
+      858:   59:vector<int> ColoringState::getAvailableColors(int vertex) const {
+      858:   60:    vector<bool> usedColors(numColors + 1, false);
+        -:   61:    // Marcar colores usados por los vecinos
+    19548:   62:    for (int neighbor : graph.getNeighbors(vertex)) {
+    18690:   63:        if (colors[neighbor] != -1) {
+        -:   64:            usedColors[colors[neighbor]] = true;
+        -:   65:        }
+        -:   66:    }
+        -:   67:
+        -:   68:    // Recolectar colores disponibles
+        -:   69:    vector<int> available;
+     7644:   70:    for (int c = 0; c < numColors + 1; c++) {
+     6786:   71:        if (!usedColors[c]) {
+        -:   72:            available.push_back(c);
+        -:   73:        }
+        -:   74:    }
+      858:   75:    return available;
+        -:   76:}
+        -:   77:
+      858:   78:void ColoringState::updateConflicts() {
+      858:   79:    numConflicts = 0;
+   137376:   80:    for (int v = 0; v < graph.getVertexCount(); v++) {
+   136518:   81:        if (isConflicting(v)) {
+    #####:   82:            numConflicts++;
+        -:   83:        }
+        -:   84:    }
+      858:   85:}
+        -:   86:
+   136518:   87:bool ColoringState::isConflicting(int vertex) const {
+   136518:   88:    if (colors[vertex] == -1)
+        -:   89:        return false;
+        -:   90:
+  1533232:   91:    for (int neighbor : graph.getNeighbors(vertex)) {
+  1464544:   92:        if (colors[neighbor] == colors[vertex]) {
+        -:   93:            return true;
+        -:   94:        }
+        -:   95:    }
+    68688:   96:    return false;
+        -:   97:}
+        -:   98:
+    #####:   99:void ColoringState::updateColorClass(int vertex, int oldColor, int newColor) {
+        -:  100:    // Eliminar vértice de la clase de color anterior
+    #####:  101:    colorClass[oldColor].erase(vertex);
+    #####:  102:}
+        -:  103:
+     3393:  104:vector<int> ColoringState::getVerticesWithColor(int color) const {
+        -:  105:    vector<int> vertices;
+     3393:  106:    if (color >= 0 && color < (int)colorClass.size()) {
+     3393:  107:        vertices.reserve(colorClass[color].size());
+    23811:  108:        for (const auto &vertex : colorClass[color]) {
+        -:  109:            vertices.push_back(vertex);
+        -:  110:        }
+        -:  111:    }
+     3393:  112:    return vertices;
+        -:  113:}
+        -:  114:
+     3965:  115:int ColoringState::getMaxUsedColor() const { return numColors - 1; }
+        -:  116:
+    #####:  117:int ColoringState::getDeltaConflicts(int vertex, int newColor) const {
+    #####:  118:    if (colors[vertex] == newColor)
+        -:  119:        return 0;
+        -:  120:
+        -:  121:    int delta = 0;
+    #####:  122:    for (int neighbor : graph.getNeighbors(vertex)) {
+    #####:  123:        if (colors[neighbor] == colors[vertex]) {
+    #####:  124:            delta--;
+        -:  125:        }
+        -:  126:    }
+        -:  127:
+    #####:  128:    for (int neighbor : graph.getNeighbors(vertex)) {
+    #####:  129:        if (colors[neighbor] == newColor) {
+    #####:  130:            delta++;
+        -:  131:        }
+        -:  132:    }
+        -:  133:
+    #####:  134:    return delta;
+        -:  135:}
+        -:  136:
+    #####:  137:vector<pair<int, int>> ColoringState::getConflictingPairs() const {
+        -:  138:    vector<pair<int, int>> conflicts;
+    #####:  139:    for (int v = 0; v < graph.getVertexCount(); v++) {
+    #####:  140:        if (colors[v] == -1)
+    #####:  141:            continue;
+        -:  142:
+    #####:  143:        for (int u : graph.getNeighbors(v)) {
+    #####:  144:            if (u > v && colors[u] == colors[v]) {
+    #####:  145:                conflicts.emplace_back(v, u);
+        -:  146:            }
+        -:  147:        }
+        -:  148:    }
+    #####:  149:    return conflicts;
+        -:  150:}
+        -:  151:
+    #####:  152:void ColoringState::print() const {
+        -:  153:    cout << "Current coloring state:" << endl;
+    #####:  154:    for (int v = 0; v < graph.getVertexCount(); v++) {
+    #####:  155:        cout << "Vertex " << v << ": Color " << colors[v] << endl;
+        -:  156:    }
+    #####:  157:    cout << "Number of colors used: " << numColors << endl;
+    #####:  158:    cout << "Number of conflicts: " << numConflicts << endl;
+        -:  159:    cout << "Uncolored vertices: " << uncoloredVertices.size() << endl;
+    #####:  160:}

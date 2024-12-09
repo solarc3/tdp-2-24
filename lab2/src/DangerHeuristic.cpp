@@ -185,7 +185,6 @@ vector<int> DangerHeuristic::getInitialOrderedVertices() const {
         vertices.emplace_back(v, graph.getDegree(v));
     }
 
-    // Sort by degree descending
     sort(vertices.begin(), vertices.end(),
          [](const auto &a, const auto &b) { return a.second > b.second; });
 

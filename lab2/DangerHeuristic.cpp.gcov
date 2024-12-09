@@ -1,0 +1,213 @@
+        -:    0:Source:src/DangerHeuristic.cpp
+        -:    1:// DangerHeuristic.cpp
+        -:    2:#include "../include/DangerHeuristic.h"
+        -:    3:
+        4:    4:DangerHeuristic::DangerHeuristic(const Graph &g)
+       16:    5:    : graph(g), rng(std::random_device{}()) {}
+        -:    6:
+        4:    7:ColoringState DangerHeuristic::generateInitialColoring(int maxColors) {
+        4:    8:    ColoringState state(graph, maxColors);
+        4:    9:    active_vertices.clear();
+        -:   10:    clearCaches();
+        -:   11:
+        -:   12:    // Inicializar conjunto de vértices activos
+      576:   13:    for (int v = 0; v < graph.getVertexCount(); v++) {
+      572:   14:        active_vertices.insert(v);
+        -:   15:    }
+        -:   16:
+        -:   17:    // Colorear vértices
+      576:   18:    while (!active_vertices.empty()) {
+      572:   19:        updateVertexScores(state);
+        -:   20:
+      572:   21:        int vertex = selectNextVertex(state);
+      572:   22:        if (vertex == -1)
+        -:   23:            break;
+        -:   24:
+      572:   25:        int color = selectColor(state, vertex);
+      572:   26:        state.assignColor(vertex, color);
+        -:   27:
+        -:   28:        // Remover vértice coloreado
+        -:   29:        active_vertices.erase(vertex);
+        -:   30:    }
+        -:   31:
+        4:   32:    return state;
+    =====:   33:}
+        -:   34:
+      572:   35:void DangerHeuristic::updateVertexScores(const ColoringState &state) {
+        -:   36:    vertex_scores.clear();
+        -:   37:
+    46936:   38:    for (const auto &v : active_vertices) {
+    45792:   39:        double danger = calculateVertexDanger(state, v);
+    45792:   40:        vertex_scores.insert({danger, v});
+        -:   41:    }
+      572:   42:}
+        -:   43:
+    45794:   44:double DangerHeuristic::calculateVertexDanger(const ColoringState &state,
+        -:   45:                                              int vertex) const {
+    45794:   46:    if (vertex_danger_cache.find(vertex) != vertex_danger_cache.end()) {
+    45222:   47:        return vertex_danger_cache[vertex];
+        -:   48:    }
+        -:   49:
+      572:   50:    int diffColored = getDifferentColoredNeighbors(state, vertex);
+      572:   51:    int maxColor = state.getMaxUsedColor() + 1;
+        -:   52:    double F = calculateF(diffColored, maxColor);
+      572:   53:    double uncoloredTerm = params.ku * getUncoloredNeighbors(state, vertex);
+      572:   54:    double shareRatioTerm = params.ka * getColorShareRatio(state, vertex);
+      572:   55:    double danger = F + uncoloredTerm + shareRatioTerm;
+      572:   56:    vertex_danger_cache[vertex] = danger;
+      572:   57:    return danger;
+        -:   58:}
+        -:   59:
+    #####:   60:double DangerHeuristic::calculateF(int diffColored, int maxColor) const {
+     572*:   61:    if (maxColor <= diffColored)
+        -:   62:        return std::numeric_limits<double>::max();
+    #####:   63:    return params.C / std::pow(maxColor - diffColored, params.k);
+        -:   64:}
+        -:   65:
+      572:   66:int DangerHeuristic::selectNextVertex(const ColoringState &state) const {
+      572:   67:    if (vertex_scores.empty())
+        -:   68:        return -1;
+        -:   69:
+        -:   70:    size_t size = vertex_scores.size();
+        -:   71:    size_t candidates = std::min(size_t(3), size);
+        -:   72:
+      572:   73:    std::uniform_int_distribution<> dist(0, candidates - 1);
+      572:   74:    auto it = vertex_scores.end();
+      572:   75:    std::advance(it, -1 - dist(rng));
+        -:   76:
+      572:   77:    return it->second;
+        -:   78:}
+        -:   79:
+     3393:   80:double DangerHeuristic::calculateColorDanger(const ColoringState &state,
+        -:   81:                                             int vertex, int color) const {
+     3393:   82:    auto key = std::make_pair(vertex, color);
+     3393:   83:    if (color_danger_cache.find(key) != color_danger_cache.end()) {
+    #####:   84:        return color_danger_cache[key];
+        -:   85:    }
+        -:   86:    int maxDiffNeighbors = 0;
+        -:   87:    int nc = vertex;
+        -:   88:
+    89650:   89:    for (int v : graph.getNeighbors(vertex)) {
+    86257:   90:        if (state.getColor(v) == -1 && state.isValidAssignment(v, color)) {
+    17808:   91:            int diffNeighbors = getDifferentColoredNeighbors(state, v);
+    17808:   92:            if (diffNeighbors > maxDiffNeighbors) {
+        -:   93:                maxDiffNeighbors = diffNeighbors;
+        -:   94:                nc = v;
+        -:   95:            }
+        -:   96:        }
+        -:   97:    }
+        -:   98:
+     3393:   99:    double maxColor = state.getMaxUsedColor() + 1;
+     3393:  100:    double diffNeighborsTerm =
+     3393:  101:        params.k1 * std::pow(maxColor - maxDiffNeighbors, params.k2);
+     3393:  102:    double uncoloredTerm = params.k3 * getUncoloredNeighbors(state, nc);
+     3393:  103:    double frequencyTerm = params.k4 * state.getVerticesWithColor(color).size();
+        -:  104:
+     3393:  105:    double danger = diffNeighborsTerm + uncoloredTerm - frequencyTerm;
+     3393:  106:    color_danger_cache[key] = danger;
+        -:  107:
+     3393:  108:    return danger;
+        -:  109:}
+        -:  110:
+      572:  111:int DangerHeuristic::selectColor(const ColoringState &state, int vertex) const {
+      572:  112:    auto colors = state.getAvailableColors(vertex);
+      572:  113:    if (colors.empty())
+        -:  114:        return 0;
+        -:  115:    double minDanger = std::numeric_limits<double>::max();
+      572:  116:    int selectedColor = colors[0];
+        -:  117:
+     3965:  118:    for (int color : colors) {
+     3393:  119:        double danger = calculateColorDanger(state, vertex, color);
+     3393:  120:        if (danger < minDanger) {
+        -:  121:            minDanger = danger;
+        -:  122:            selectedColor = color;
+        -:  123:        }
+        -:  124:    }
+        -:  125:
+        -:  126:    return selectedColor;
+        -:  127:}
+        -:  128:
+    18380:  129:int DangerHeuristic::getDifferentColoredNeighbors(const ColoringState &state,
+        -:  130:                                                  int vertex) const {
+        -:  131:    color_set usedColors;
+   696290:  132:    for (int neighbor : graph.getNeighbors(vertex)) {
+   677910:  133:        int color = state.getColor(neighbor);
+   677910:  134:        if (color != -1) {
+   334768:  135:            usedColors.insert(color);
+        -:  136:        }
+        -:  137:    }
+    18380:  138:    return usedColors.size();
+        -:  139:}
+        -:  140:
+     3965:  141:int DangerHeuristic::getUncoloredNeighbors(const ColoringState &state,
+        -:  142:                                           int vertex) const {
+        -:  143:    int count = 0;
+   154945:  144:    for (int neighbor : graph.getNeighbors(vertex)) {
+   150980:  145:        if (state.getColor(neighbor) == -1)
+    62840:  146:            count++;
+        -:  147:    }
+     3965:  148:    return count;
+        -:  149:}
+        -:  150:
+      572:  151:double DangerHeuristic::getColorShareRatio(const ColoringState &state,
+        -:  152:                                           int vertex) const {
+      572:  153:    vector<bool> colorAvailable(state.getNumColors() + 1, true);
+        -:  154:    int availableCount = 0;
+        -:  155:    int sharedCount = 0;
+    13032:  156:    for (int neighbor : graph.getNeighbors(vertex)) {
+        -:  157:        int color = state.getColor(neighbor);
+    12460:  158:        if (color != -1)
+        -:  159:            colorAvailable[color] = false;
+        -:  160:    }
+     2288:  161:    for (size_t color = 0; color < colorAvailable.size(); color++) {
+      572:  162:        if (colorAvailable[color]) {
+      572:  163:            availableCount++;
+        -:  164:            bool shared = false;
+      572:  165:            for (int neighbor : graph.getNeighbors(vertex)) {
+     1144:  166:                if (state.getColor(neighbor) == -1 &&
+      572:  167:                    state.isValidAssignment(neighbor, color)) {
+        -:  168:                    shared = true;
+        -:  169:                    break;
+        -:  170:                }
+        -:  171:            }
+      572:  172:            if (shared)
+      572:  173:                sharedCount++;
+        -:  174:        }
+        -:  175:    }
+        -:  176:
+        -:  177:    return availableCount > 0
+      572:  178:               ? static_cast<double>(sharedCount) / availableCount
+      572:  179:               : 1.0;
+        -:  180:}
+        -:  181:
+    #####:  182:bool DangerHeuristic::isVertexCCDependent(const ColoringState &state,
+        -:  183:                                          int vertex) const {
+    #####:  184:    int maxColor = state.getMaxUsedColor();
+    #####:  185:    if (maxColor < 0)
+        -:  186:        return false;
+        -:  187:
+    #####:  188:    int potentialDiff = getDifferentColoredNeighbors(state, vertex) +
+    #####:  189:                        getUncoloredNeighbors(state, vertex);
+        -:  190:
+    #####:  191:    return potentialDiff < maxColor;
+        -:  192:}
+        -:  193:
+    #####:  194:vector<int> DangerHeuristic::getInitialOrderedVertices() const {
+        -:  195:    vector<pair<int, int>> vertices;
+    #####:  196:    vertices.reserve(graph.getVertexCount());
+        -:  197:
+    #####:  198:    for (int v = 0; v < graph.getVertexCount(); v++) {
+    #####:  199:        vertices.emplace_back(v, graph.getDegree(v));
+        -:  200:    }
+        -:  201:
+    #####:  202:    sort(vertices.begin(), vertices.end(),
+    #####:  203:         [](const auto &a, const auto &b) { return a.second > b.second; });
+        -:  204:
+        -:  205:    vector<int> ordered;
+    #####:  206:    ordered.reserve(vertices.size());
+    #####:  207:    for (const auto &[v, d] : vertices) {
+        -:  208:        ordered.push_back(v);
+        -:  209:    }
+        -:  210:
+    #####:  211:    return ordered;
+        -:  212:}

@@ -1,0 +1,115 @@
+        -:    0:Source:src/BranchAndBound.cpp
+        -:    1:#include "../include/BranchAndBound.h"
+        -:    2:
+        2:    3:BranchAndBound::BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &d,
+        -:    4:                               double alpha, int maxIter,
+        2:    5:                               std::chrono::milliseconds tLimit)
+        2:    6:    : graph(g), bounds(b), dangerHeuristic(d), alpha(0.1),
+        4:    7:      maxIterations(maxIter), timeLimit(tLimit) {}
+        2:    8:void BranchAndBound::solve(ColoringState &solution) {
+        2:    9:    solution = dangerHeuristic.generateInitialColoring(bounds.getUpperBound());
+        2:   10:    if (solution.getNumColors() == 0) {
+    #####:   11:        ColoringState initialState(graph, graph.getVertexCount());
+    #####:   12:        for (int v = 0; v < graph.getVertexCount(); v++) {
+    #####:   13:            for (int c = 0; c < graph.getVertexCount(); c++) {
+    #####:   14:                if (initialState.isValidAssignment(v, c)) {
+    #####:   15:                    initialState.assignColor(v, c);
+        -:   16:                    break;
+        -:   17:                }
+        -:   18:            }
+        -:   19:        }
+    #####:   20:        solution = initialState;
+    #####:   21:    }
+        -:   22:
+        2:   23:    int currentK = solution.getNumColors() - 1;
+        2:   24:    ColoringState currentState(graph, currentK);
+        2:   25:    while (currentK >= bounds.getLowerBound()) {
+        2:   26:        ColoringState newState(graph, currentK);
+        2:   27:        if (branchAndBoundRecursive(newState, currentK)) {
+    #####:   28:            bounds.updateUpperBound(currentK, currentState);
+    #####:   29:            solution = newState;
+    #####:   30:            currentK--;
+        -:   31:        } else {
+        2:   32:            bounds.updateLowerBound(currentK + 1);
+        -:   33:            break;
+        -:   34:        }
+       2*:   35:    }
+        2:   36:}
+        -:   37:
+        2:   38:bool BranchAndBound::branchAndBoundRecursive(ColoringState &state,
+        -:   39:                                             int targetColors) {
+       2*:   40:    if (state.isComplete() && state.isLegal())
+        -:   41:        return true;
+        -:   42:
+        2:   43:    int vertex = selectBestVertex(state);
+        4:   44:    if (vertex == -1 || isInfeasible(state, vertex))
+        2:   45:        return false;
+        -:   46:
+    #####:   47:    auto availableColors = state.getAvailableColors(vertex);
+        -:   48:    vector<pair<int, double>> orderedColors;
+        -:   49:
+    #####:   50:    for (int color : availableColors) {
+    #####:   51:        if (color >= targetColors)
+    #####:   52:            continue;
+    #####:   53:        if (state.isValidAssignment(vertex, color) &&
+        -:   54:            !shouldPrune(state, vertex, color)) {
+        -:   55:            double danger =
+    #####:   56:                dangerHeuristic.calculateColorDanger(state, vertex, color);
+    #####:   57:            orderedColors.emplace_back(color, danger);
+        -:   58:        }
+        -:   59:    }
+        -:   60:
+    #####:   61:    sort(orderedColors.begin(), orderedColors.end(),
+    #####:   62:         [](const auto &a, const auto &b) { return a.second < b.second; });
+        -:   63:
+    #####:   64:    for (const auto &[color, danger] : orderedColors) {
+    #####:   65:        state.assignColor(vertex, color);
+    #####:   66:        if (branchAndBoundRecursive(state, targetColors))
+        -:   67:            return true;
+        -:   68:    }
+        -:   69:
+        -:   70:    return false;
+        -:   71:}
+        -:   72:
+    #####:   73:bool BranchAndBound::shouldPrune(const ColoringState &state, int vertex,
+        -:   74:                                 int color) const {
+    #####:   75:    if (state.getDeltaConflicts(vertex, color) > 0) {
+    #####:   76:        return true;
+        -:   77:    }
+        -:   78:    return false;
+        -:   79:}
+        -:   80:
+    #####:   81:bool BranchAndBound::isInfeasible(const ColoringState &state,
+        -:   82:                                  int vertex) const {
+       2*:   83:    for (int c = 0; c < state.getNumColors(); c++) {
+    #####:   84:        if (state.isValidAssignment(vertex, c))
+        -:   85:            return false;
+        -:   86:    }
+        -:   87:    return true;
+        -:   88:}
+        -:   89:
+        2:   90:int BranchAndBound::selectBestVertex(const ColoringState &state) const {
+        -:   91:    int selectedVertex = -1;
+        -:   92:    double maxDanger = -1;
+        -:   93:    int minAvailableColors = std::numeric_limits<int>::max();
+        -:   94:
+      288:   95:    for (int v = 0; v < graph.getVertexCount(); v++) {
+      572:   96:        if (state.getColor(v) == -1 &&
+        -:   97:            pruned_vertices.find(v) == pruned_vertices.end()) {
+      286:   98:            auto availableColors = state.getAvailableColors(v);
+      286:   99:            if (availableColors.empty()) {
+    #####:  100:                pruned_vertices.insert(v);
+        -:  101:                return -1;
+        -:  102:            }
+        -:  103:
+      286:  104:            if (availableColors.size() < minAvailableColors) {
+        2:  105:                double danger = dangerHeuristic.calculateVertexDanger(state, v);
+        -:  106:                selectedVertex = v;
+        -:  107:                maxDanger = danger;
+        2:  108:                minAvailableColors = availableColors.size();
+        -:  109:            }
+        -:  110:        }
+        -:  111:    }
+        -:  112:
+        2:  113:    return selectedVertex;
+        -:  114:}

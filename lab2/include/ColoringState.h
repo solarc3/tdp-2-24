@@ -8,14 +8,13 @@ class ColoringState {
     private:
     using AdjList = cc_hash_table<int, null_type, hash<int>>;
 
-    const Graph &graph; // Referencia al grafo original
-    vector<int> colors; // Color asignado a cada vértice (-1 = sin color)
+    const Graph &graph;
+    vector<int> colors;
     int numColors;
     int numConflicts;
     vector<AdjList> colorClass;
     AdjList uncoloredVertices;
 
-    // Métodos privados auxiliares
     void updateConflicts();
     bool isConflicting(int vertex) const;
     void updateColorClass(int vertex, int oldColor, int newColor);
@@ -58,4 +57,5 @@ class ColoringState {
         }
         return *this;
     }
+    void unassignColor(int vertex);
 };

@@ -1,0 +1,101 @@
+        -:    0:Source:src/Graph.cpp
+        -:    1:#include "../include/Graph.h"
+        -:    2:
+        2:    3:Graph::Graph() {
+        2:    4:    this->vertexCount = 0;
+        2:    5:    this->edgeCount = 0;
+        2:    6:}
+    #####:    7:Graph::Graph(int vertices) {
+    #####:    8:    this->vertexCount = vertices;
+    #####:    9:    this->adj = vector<AdjList>(vertices);
+    #####:   10:    this->edgeCount = 0;
+    #####:   11:}
+        -:   12:
+     6230:   13:void Graph::addEdge(int v, int w) {
+     6230:   14:    if (!hasEdge(v, w)) {
+     6230:   15:        adj[v].insert(w);
+     6230:   16:        edgeCount++;
+        -:   17:    }
+     6230:   18:}
+        -:   19:
+      424:   20:bool Graph::hasEdge(int v, int w) const {
+    6654*:   21:    return adj[v].find(w) != adj[v].end();
+        -:   22:}
+        -:   23:
+   131487:   24:vector<int> Graph::getNeighbors(int v) const {
+        -:   25:    vector<int> neighbors;
+   131487:   26:    neighbors.reserve(adj[v].size()); // Preallocate para eficiencia
+  4043139:   27:    for (const auto &w : adj[v]) {
+        -:   28:        neighbors.push_back(w);
+        -:   29:    }
+   131487:   30:    return neighbors;
+        -:   31:}
+        -:   32:
+    #####:   33:void Graph::removeEdge(int v, int w) {
+    #####:   34:    if (hasEdge(v, w)) {
+    #####:   35:        adj[v].erase(w);
+    #####:   36:        edgeCount--;
+        -:   37:    }
+    #####:   38:}
+        -:   39:
+   176771:   40:int Graph::getVertexCount() const { return vertexCount; }
+        -:   41:
+      286:   42:int Graph::getDegree(int v) const { return adj[v].size(); }
+        -:   43:
+    #####:   44:bool Graph::isEmpty() const { return edgeCount == 0; }
+        -:   45:
+    #####:   46:void Graph::clear() {
+    #####:   47:    for (auto &adjList : adj) {
+    #####:   48:        adjList.clear();
+        -:   49:    }
+    #####:   50:    edgeCount = 0;
+    #####:   51:}
+        -:   52:
+        2:   53:bool Graph::createFromFile(const string &fileName) {
+        2:   54:    ifstream file(fileName);
+        2:   55:    if (!file.is_open()) {
+        -:   56:        cout << "No se pudo abrir el archivo " << fileName << endl;
+        -:   57:        return false;
+        -:   58:    }
+        -:   59:    vpii edges;
+        -:   60:    int v, w;
+     3117:   61:    while (file >> v >> w) {
+     3115:   62:        edges.push_back({v, w});
+        -:   63:    }
+        2:   64:    int maxVertex = 0;
+     3117:   65:    for (const auto &edge : edges) {
+     6230:   66:        maxVertex = std::max(maxVertex, std::max(edge.first, edge.second));
+        -:   67:    }
+        2:   68:    this->vertexCount = maxVertex;
+        2:   69:    this->adj = vector<AdjList>(maxVertex);
+        2:   70:    this->edgeCount = 0;
+        -:   71:    // formato DIMACS no dirigido
+     3117:   72:    for (const auto &edge : edges) {
+     3115:   73:        this->addEdge(edge.first - 1, edge.second - 1);
+     3115:   74:        this->addEdge(edge.second - 1, edge.first - 1);
+        -:   75:    }
+        -:   76:
+        -:   77:    std::cout << "total de aristas: " << edges.size() << std::endl;
+        2:   78:    std::cout << "total de vertices: " << maxVertex << std::endl;
+        2:   79:    this->printGraph();
+        -:   80:
+        -:   81:    return true;
+        2:   82:}
+        -:   83:
+        2:   84:void Graph::printGraph() {
+      288:   85:    for (int i = 0; i < vertexCount; i++) {
+      286:   86:        cout << i << ": ";
+     6802:   87:        for (const auto &w : adj[i]) {
+     6230:   88:            cout << w << " ";
+        -:   89:        }
+        -:   90:        cout << endl;
+        -:   91:    }
+        2:   92:}
+        -:   93:
+    #####:   94:int Graph::getMaxDegree() {
+    #####:   95:    int maxDegree = 0;
+    #####:   96:    for (int i = 0; i < vertexCount; i++) {
+    #####:   97:        maxDegree = std::max(maxDegree, (int)adj[i].size());
+        -:   98:    }
+    #####:   99:    return maxDegree;
+        -:  100:}

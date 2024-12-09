@@ -15,12 +15,10 @@ class DangerHeuristic {
 
     private:
     const Graph &graph;
-
-    // Parámetros de la heurística (según los papers)
-    const double C = 1.0;    // Constante para función de criticidad
-    const double k = 1.0;    // Exponente para función de criticidad
-    const double ku = 0.025; // Peso para vértices no coloreados
-    const double ka = 0.33;  // Peso para colores compartidos
+    const double C = 1.0;
+    const double k = 1.0;
+    const double ku = 0.025;
+    const double ka = 0.33;
 
     const double k1 = 1.0;
     const double k2 = 1.0;
@@ -28,8 +26,6 @@ class DangerHeuristic {
     const double k4 = 0.025;
     mutable ColorSet colored_vertices;
     mutable ScoredVertices danger_scores;
-
-    // Generador de números aleatorios
     mutable std::mt19937 rng;
 
     public:

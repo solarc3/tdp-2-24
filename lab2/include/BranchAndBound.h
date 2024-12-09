@@ -35,6 +35,6 @@ class BranchAndBound {
 
     void solve(ColoringState &solution);
     bool shouldPrune(const ColoringState &state, int vertex, int color) const;
-    bool isInfeasible(const ColoringState &state, int vertex) const;
+    bool isInfeasible(const ColoringState &state, int vertex, int target) const;
     int selectBestVertex(const ColoringState &state) const;
 };
