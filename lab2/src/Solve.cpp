@@ -6,11 +6,9 @@ bool Solver::initialize(const string &filename) {
     if (!graph.createFromFile(filename)) {
         return false;
     }
-
     dangerHeuristic = std::make_unique<DangerHeuristic>(graph);
     bounds = std::make_unique<Bounds>(graph);
     bnb = std::make_unique<BranchAndBound>(graph, *bounds, *dangerHeuristic);
-    // Reinicializar bestSolution con el grafo actual
     bestSolution = ColoringState(graph, graph.getVertexCount());
     initialized = true;
     return true;

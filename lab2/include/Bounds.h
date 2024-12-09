@@ -9,22 +9,20 @@ class Bounds {
     const Graph &graph;
     int lowerBound;
     int upperBound;
-    vector<int> maxClique;
 
     // Métodos privados para calcular cotas
-    vector<int> findMaximalClique();
-    int calculateDSaturBound();
+    int calculateUpperBound(); // Implementación RLF
+    int calculateLowerBound(); // Algoritmo de clique máxima
 
     public:
     // Constructor
-    explicit Bounds(const Graph &g);
+    explicit Bounds(const Graph &graph);
 
-    // Getters
+    // Getters para las cotas
     int getLowerBound() const;
     int getUpperBound() const;
-    const vector<int> &getMaxClique() const;
 
-    // Métodos para actualizar cotas
-    void updateLowerBound(int newBound);
-    void updateUpperBound(int newBound);
+    // Actualizadores de cotas
+    void updateLowerBound(int newLowerBound);
+    void updateUpperBound(int newUpperBound);
 };

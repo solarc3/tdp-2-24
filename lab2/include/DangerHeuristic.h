@@ -8,7 +8,6 @@
 class DangerHeuristic {
     using ColorSet = cc_hash_table<int, null_type, hash<int>>;
 
-    // Use tree for ordered scoring
     using ScoredVertices =
         tree<pair<double, int>, null_type, less<pair<double, int>>, rb_tree_tag,
              tree_order_statistics_node_update>;
@@ -24,7 +23,6 @@ class DangerHeuristic {
     const double k2 = 1.0;
     const double k3 = 0.5;
     const double k4 = 0.025;
-    mutable ColorSet colored_vertices;
     mutable ScoredVertices danger_scores;
     mutable std::mt19937 rng;
 
@@ -38,7 +36,7 @@ class DangerHeuristic {
     double calculateVertexDanger(const ColoringState &state, int vertex) const;
     double calculateColorDanger(const ColoringState &state, int vertex,
                                 int color) const;
-    int selectRandomFromTop(const vector<int> &candidates, int topK) const;
+
     int getDifferentColoredNeighbors(const ColoringState &state,
                                      int vertex) const;
     int getUncoloredNeighbors(const ColoringState &state, int vertex) const;

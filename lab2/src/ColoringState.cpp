@@ -96,11 +96,6 @@ bool ColoringState::isConflicting(int vertex) const {
     return false;
 }
 
-void ColoringState::updateColorClass(int vertex, int oldColor, int newColor) {
-    // Eliminar vértice de la clase de color anterior
-    colorClass[oldColor].erase(vertex);
-}
-
 vector<int> ColoringState::getVerticesWithColor(int color) const {
     vector<int> vertices;
     if (color >= 0 && color < (int)colorClass.size()) {

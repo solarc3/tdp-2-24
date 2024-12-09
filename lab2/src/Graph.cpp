@@ -41,23 +41,12 @@ int Graph::getVertexCount() const { return vertexCount; }
 
 int Graph::getDegree(int v) const { return adj[v].size(); }
 
-bool Graph::isEmpty() const { return edgeCount == 0; }
-
-void Graph::clear() {
-    for (auto &adjList : adj) {
-        adjList.clear();
-    }
-    edgeCount = 0;
-}
-
 bool Graph::createFromFile(const string &fileName) {
     ifstream file(fileName);
     if (!file.is_open()) {
         cerr << "No se pudo abrir el archivo " << fileName << endl;
         return false;
     }
-
-    // Primera pasada: encontrar el máximo vértice para determinar el tamaño
     int maxVertex = 0;
     vector<pair<int, int>> edges;
     int v, w;
@@ -80,8 +69,7 @@ bool Graph::createFromFile(const string &fileName) {
 
     cout << "Grafo cargado exitosamente:" << endl;
     cout << "Vertices: " << vertexCount << endl;
-    cout << "Aristas: " << edgeCount / 2
-         << endl; // División por 2 porque cada arista se cuenta dos veces
+    cout << "Aristas: " << edgeCount / 2 << endl;
 
     file.close();
     return true;

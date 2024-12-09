@@ -1,118 +1,130 @@
 #include "../include/Bounds.h"
+#include <climits>
+#include <functional>
+#include <set>
 
-Bounds::Bounds(const Graph &g) : graph(g) {
-    maxClique = findMaximalClique();
-    lowerBound = maxClique.size();
-    upperBound = calculateDSaturBound();
+Bounds::Bounds(const Graph &graph) : graph(graph) {
+    upperBound = calculateUpperBound();
+    lowerBound = calculateLowerBound();
 }
 
-vector<int> Bounds::findMaximalClique() {
-    vector<int> clique;
-    vector<bool> inClique(graph.getVertexCount(), false);
+int Bounds::calculateUpperBound() {
+    int n = graph.getVertexCount();
+    vector<int> color(n, -1);
+    int numColors = 0;
+    vector<int> uncolored(n);
 
-    // Ordenar vértices por grado
-    vector<pair<int, int>> vertices;
-    for (int v = 0; v < graph.getVertexCount(); v++) {
-        vertices.push_back({graph.getDegree(v), v});
+    // Inicializar vector de vértices no coloreados
+    for (int i = 0; i < n; i++) {
+        uncolored[i] = i;
     }
-    sort(vertices.rbegin(), vertices.rend());
 
-    // Construir clique
-    for (const auto &[degree, v] : vertices) {
-        bool canAdd = true;
-        for (int u : clique) {
-            if (!graph.hasEdge(v, u)) {
-                canAdd = false;
-                break;
+    while (!uncolored.empty()) {
+        // Encontrar vértice de mayor grado entre los no coloreados
+        int maxDegree = -1;
+        int startVertex = -1;
+        int startVertexIndex = -1;
+
+        for (int i = 0; i < (int)uncolored.size(); i++) {
+            int v = uncolored[i];
+            if (color[v] == -1) {
+                int degree = graph.getDegree(v);
+                if (degree > maxDegree) {
+                    maxDegree = degree;
+                    startVertex = v;
+                    startVertexIndex = i;
+                }
             }
         }
-        if (canAdd) {
-            clique.push_back(v);
-            inClique[v] = true;
+
+        if (startVertex == -1)
+            break;
+
+        // Remover el vértice seleccionado de los no coloreados
+        if (startVertexIndex != -1) {
+            uncolored[startVertexIndex] = uncolored.back();
+            uncolored.pop_back();
         }
-    }
 
-    return clique;
-}
+        numColors++;
+        color[startVertex] = numColors;
 
-int Bounds::calculateDSaturBound() {
-    vector<int> colors(graph.getVertexCount(), -1);
-    vector<set<int>> saturation(
-        graph.getVertexCount()); // Colores usados por vecinos
+        // Construir conjunto independiente
+        vector<int> independentSet;
+        vector<bool> canAdd(n, true);
 
-    // Comenzar con el vértice de mayor grado
-    int maxDegree = -1;
-    int firstVertex = 0;
-    for (int v = 0; v < graph.getVertexCount(); v++) {
-        int degree = graph.getDegree(v);
-        if (degree > maxDegree) {
-            maxDegree = degree;
-            firstVertex = v;
+        // Marcar vecinos del vértice inicial como no disponibles
+        for (int u : graph.getNeighbors(startVertex)) {
+            canAdd[u] = false;
         }
-    }
 
-    colors[firstVertex] = 0;
-    int maxColorUsed = 0;
-
-    // Actualizar saturación de vecinos
-    for (int u : graph.getNeighbors(firstVertex)) {
-        saturation[u].insert(0);
-    }
-
-    // Colorear resto de vértices
-    for (int i = 1; i < graph.getVertexCount(); i++) {
-        // Seleccionar vértice con mayor saturación
-        int maxSat = -1;
-        int maxDeg = -1;
-        int nextVertex = -1;
-
-        for (int v = 0; v < graph.getVertexCount(); v++) {
-            if (colors[v] != -1)
+        // Construir conjunto independiente maximial
+        for (int v : uncolored) {
+            if (!canAdd[v])
                 continue;
 
-            int sat = saturation[v].size();
-            int deg = graph.getDegree(v);
+            bool isIndependent = true;
+            for (int u : independentSet) {
+                if (graph.hasEdge(v, u)) {
+                    isIndependent = false;
+                    break;
+                }
+            }
 
-            if (sat > maxSat || (sat == maxSat && deg > maxDeg)) {
-                maxSat = sat;
-                maxDeg = deg;
-                nextVertex = v;
+            if (isIndependent) {
+                independentSet.push_back(v);
+                // Marcar vecinos como no disponibles
+                for (int u : graph.getNeighbors(v)) {
+                    canAdd[u] = false;
+                }
             }
         }
 
-        // Encontrar el menor color disponible
-        int color = 0;
-        while (saturation[nextVertex].count(color))
-            color++;
-
-        colors[nextVertex] = color;
-        maxColorUsed = max(maxColorUsed, color);
-
-        // Actualizar saturación de vecinos
-        for (int u : graph.getNeighbors(nextVertex)) {
-            if (colors[u] == -1) {
-                saturation[u].insert(color);
+        // Colorear el conjunto independiente
+        for (int v : independentSet) {
+            color[v] = numColors;
+            // Remover de uncolored
+            for (size_t i = 0; i < uncolored.size(); i++) {
+                if (uncolored[i] == v) {
+                    uncolored[i] = uncolored.back();
+                    uncolored.pop_back();
+                    break;
+                }
             }
         }
     }
 
-    return maxColorUsed + 1;
+    return numColors;
+}
+
+int Bounds::calculateLowerBound() {
+    int n = graph.getVertexCount();
+    int maxCliqueSize = 0;
+    vector<int> currentClique;
+    function<void(int)> dfs = [&](int start) {
+        for (int v = start; v < n; ++v) {
+            bool canAdd = true;
+            for (int u : currentClique) {
+                if (!graph.hasEdge(u, v)) {
+                    canAdd = false;
+                    break;
+                }
+            }
+            if (canAdd) {
+                currentClique.push_back(v);
+                if ((int)currentClique.size() > maxCliqueSize) {
+                    maxCliqueSize = currentClique.size();
+                }
+                dfs(v + 1);
+                currentClique.pop_back();
+            }
+        }
+    };
+    dfs(0);
+    return maxCliqueSize;
 }
 
 int Bounds::getLowerBound() const { return lowerBound; }
-
 int Bounds::getUpperBound() const { return upperBound; }
-
-const vector<int> &Bounds::getMaxClique() const { return maxClique; }
-
-void Bounds::updateLowerBound(int newBound) {
-    if (newBound > lowerBound) {
-        lowerBound = newBound;
-    }
-}
-
-void Bounds::updateUpperBound(int newBound) {
-    if (newBound < upperBound) {
-        upperBound = newBound;
-    }
-}
+void Bounds::updateLowerBound(int newLowerBound) { lowerBound = newLowerBound; }
+void Bounds::updateUpperBound(int newUpperBound) { upperBound = newUpperBound; }

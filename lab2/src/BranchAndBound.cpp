@@ -1,10 +1,5 @@
 #include "../include/BranchAndBound.h"
 
-BranchAndBound::BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &d,
-                               double alpha, int maxIter,
-                               std::chrono::milliseconds tLimit)
-    : graph(g), bounds(b), dangerHeuristic(d), alpha(0.1),
-      maxIterations(maxIter), timeLimit(tLimit) {}
 void BranchAndBound::solve(ColoringState &solution) {
     // Obtener coloreo inicial usando la heurística DANGER
     solution = dangerHeuristic.generateInitialColoring(bounds.getUpperBound());
@@ -23,44 +18,57 @@ void BranchAndBound::solve(ColoringState &solution) {
         solution = initialState;
     }
 
-    // Guardar la mejor solución encontrada hasta ahora
     ColoringState bestSolution = solution;
     int currentK = solution.getNumColors() - 1;
 
-    // Intentar mejorar la solución reduciendo el número de colores
     while (currentK >= bounds.getLowerBound()) {
-        // Crear nuevo estado preservando coloreo parcial válido
         ColoringState newState(graph, currentK);
 
-        // Copiar asignaciones de colores válidas de la mejor solución
         for (int v = 0; v < graph.getVertexCount(); v++) {
             int color = bestSolution.getColor(v);
-            if (color <
-                currentK) { // Solo copiar si usa menos colores que el objetivo
+            if (color < currentK) {
                 newState.assignColor(v, color);
             }
         }
 
-        // Limpiar conjunto de vértices podados para nueva iteración
         pruned_vertices.clear();
 
-        // Intentar encontrar solución con currentK colores
         if (branchAndBoundRecursive(newState, currentK)) {
-            // Actualizar cota superior y mejor solución
             bounds.updateUpperBound(currentK);
             bestSolution = newState;
-            // Intentar con menos colores
             currentK--;
         } else {
-            // No se encontró solución con currentK colores
             bounds.updateLowerBound(currentK + 1);
             break;
         }
     }
 
-    // Actualizar la solución final
     solution = bestSolution;
 }
+
+bool BranchAndBound::shouldPrune(const ColoringState &state, int vertex,
+                                 int color) const {
+    if (state.getDeltaConflicts(vertex, color) > 0) {
+        return true;
+    }
+
+    size_t uncoloredNeighbors = 0;
+    set<int> availableColors;
+
+    for (int neighbor : graph.getNeighbors(vertex)) {
+        if (state.getColor(neighbor) == -1) {
+            uncoloredNeighbors++;
+            for (int c = 0; c < color; c++) {
+                if (state.isValidAssignment(neighbor, c)) {
+                    availableColors.insert(c);
+                }
+            }
+        }
+    }
+
+    return uncoloredNeighbors > availableColors.size();
+}
+
 bool BranchAndBound::branchAndBoundRecursive(ColoringState &state,
                                              int targetColors) {
     // Si el estado está completo y es legal, encontramos una solución válida
@@ -111,41 +119,13 @@ bool BranchAndBound::branchAndBoundRecursive(ColoringState &state,
 
         // Si esta rama no lleva a solución, deshacer el cambio
         if (oldColor == -1) {
-            // Si el vértice no tenía color, volver a dejarlo sin color
             state.unassignColor(vertex);
         } else {
-            // Si tenía color, restaurar el color anterior
             state.assignColor(vertex, oldColor);
         }
     }
 
-    // Si ningún color llevó a una solución, este camino no es válido
     return false;
-}
-bool BranchAndBound::shouldPrune(const ColoringState &state, int vertex,
-                                 int color) const {
-    // Verificar si la asignación genera conflictos inmediatos
-    if (state.getDeltaConflicts(vertex, color) > 0) {
-        return true;
-    }
-
-    // Verificar si quedan suficientes colores disponibles para los vértices
-    int uncoloredNeighbors = 0;
-    set<int> availableColors;
-
-    for (int neighbor : graph.getNeighbors(vertex)) {
-        if (state.getColor(neighbor) == -1) {
-            uncoloredNeighbors++;
-            for (int c = 0; c < color; c++) {
-                if (state.isValidAssignment(neighbor, c)) {
-                    availableColors.insert(c);
-                }
-            }
-        }
-    }
-
-    // Si hay más vecinos sin colorear que colores disponibles, podar
-    return uncoloredNeighbors > availableColors.size();
 }
 
 bool BranchAndBound::isInfeasible(const ColoringState &state, int vertex,
@@ -159,8 +139,7 @@ bool BranchAndBound::isInfeasible(const ColoringState &state, int vertex,
 
 int BranchAndBound::selectBestVertex(const ColoringState &state) const {
     int selectedVertex = -1;
-    double maxDanger = -1;
-    int minAvailableColors = std::numeric_limits<int>::max();
+    size_t minAvailableColors = std::numeric_limits<size_t>::max();
 
     for (int v = 0; v < graph.getVertexCount(); v++) {
         if (state.getColor(v) == -1 &&
@@ -172,9 +151,9 @@ int BranchAndBound::selectBestVertex(const ColoringState &state) const {
             }
 
             if (availableColors.size() < minAvailableColors) {
-                double danger = dangerHeuristic.calculateVertexDanger(state, v);
+                dangerHeuristic.calculateVertexDanger(
+                    state, v); // Mantener la llamada por consistencia
                 selectedVertex = v;
-                maxDanger = danger;
                 minAvailableColors = availableColors.size();
             }
         }

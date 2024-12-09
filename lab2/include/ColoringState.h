@@ -17,29 +17,20 @@ class ColoringState {
 
     void updateConflicts();
     bool isConflicting(int vertex) const;
-    void updateColorClass(int vertex, int oldColor, int newColor);
 
     public:
     ColoringState(const Graph &g, int initialColors);
-
-    // Getters básicos
     int getNumColors() const { return numColors; }
     int getNumConflicts() const { return numConflicts; }
     int getColor(int vertex) const { return colors[vertex]; }
     const vector<int> &getColors() const { return colors; }
-
-    // Operaciones principales
     void assignColor(int vertex, int color);
     bool isValidAssignment(int vertex, int color) const;
     vector<int> getAvailableColors(int vertex) const;
     bool isComplete() const { return uncoloredVertices.empty(); }
     bool isLegal() const { return numConflicts == 0; }
-
-    // Métodos para análisis y debug
     void print() const;
     vector<pair<int, int>> getConflictingPairs() const;
-
-    // Métodos para B&B y búsqueda tabú
     int getDeltaConflicts(int vertex, int newColor) const;
     vector<int> getVerticesWithColor(int color) const;
     int getMaxUsedColor() const;

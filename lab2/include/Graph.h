@@ -22,8 +22,6 @@ class Graph {
     void removeEdge(int v, int w);
     int getVertexCount() const;
     int getDegree(int v) const;
-    bool isEmpty() const;
-    void clear();
     bool createFromFile(const string &fileName);
     void printGraph();
     int getMaxDegree();

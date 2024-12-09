@@ -14,7 +14,6 @@ class Solver {
     std::unique_ptr<DangerHeuristic> dangerHeuristic; // 5
     std::unique_ptr<BranchAndBound> bnb;              // 6
     std::chrono::milliseconds executionTime;          // 7
-
     public:
     Solver();
     bool initialize(const string &filename);
