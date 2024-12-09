@@ -89,7 +89,7 @@ bool BranchAndBound::shouldPrune(const ColoringState &state, int vertex,
     }
     saturation = neighborColors.size();
 
-    const double saturationThreshold = 0.8; // Ahora configurable
+    const double saturationThreshold = 0.7;
     return saturation > (maxColor * saturationThreshold);
 }
 int BranchAndBound::selectBestVertex(const ColoringState &state) const {
@@ -131,10 +131,6 @@ bool BranchAndBound::branchAndBoundRecursive(ColoringState &state,
         return state.isLegal();
     }
 
-    if (currentDepth > maxBacktrackDepth) {
-        return false;
-    }
-
     int vertex = selectBestVertex(state);
     if (vertex == -1) {
         return false;
@@ -155,15 +151,8 @@ bool BranchAndBound::branchAndBoundRecursive(ColoringState &state,
             orderedColors.emplace_back(color, danger);
         }
     }
-
-    // Sort colors by danger (ascending) to prioritize less dangerous colors
     std::sort(orderedColors.begin(), orderedColors.end(),
               [](const auto &a, const auto &b) { return a.second < b.second; });
-
-    constexpr size_t MAX_COLORS_TO_TRY = 5;
-    if (orderedColors.size() > MAX_COLORS_TO_TRY) {
-        orderedColors.resize(MAX_COLORS_TO_TRY);
-    }
 
     for (const auto &[color, danger] : orderedColors) {
         state.assignColor(vertex, color);
