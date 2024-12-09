@@ -9,6 +9,7 @@ Bounds::Bounds(const Graph &graph) : graph(graph) {
 }
 
 int Bounds::calculateUpperBound() {
+    std::cout << "Calculando cota superior..." << std::endl;
     int n = graph.getVertexCount();
     vector<int> color(n, -1);
     int numColors = 0;
@@ -19,13 +20,17 @@ int Bounds::calculateUpperBound() {
         uncolored[i] = i;
     }
 
-    while (!uncolored.empty()) {
+    const int MAX_ITERATIONS =
+        10000; // Límite de iteraciones para evitar bucles muy largos
+    int iterations = 0;
+
+    while (!uncolored.empty() && iterations++ < MAX_ITERATIONS) {
         // Encontrar vértice de mayor grado entre los no coloreados
         int maxDegree = -1;
         int startVertex = -1;
         int startVertexIndex = -1;
 
-        for (int i = 0; i < (int)uncolored.size(); i++) {
+        for (size_t i = 0; i < uncolored.size(); i++) {
             int v = uncolored[i];
             if (color[v] == -1) {
                 int degree = graph.getDegree(v);
@@ -49,81 +54,104 @@ int Bounds::calculateUpperBound() {
         numColors++;
         color[startVertex] = numColors;
 
-        // Construir conjunto independiente
-        vector<int> independentSet;
+        // Construir conjunto independiente con límite de tiempo
         vector<bool> canAdd(n, true);
-
-        // Marcar vecinos del vértice inicial como no disponibles
         for (int u : graph.getNeighbors(startVertex)) {
             canAdd[u] = false;
         }
 
-        // Construir conjunto independiente maximial
+        const int MAX_INDEPENDENT_SET_ITERATIONS = 1000;
+        int indSetIterations = 0;
+
         for (int v : uncolored) {
+            if (indSetIterations++ > MAX_INDEPENDENT_SET_ITERATIONS)
+                break;
+
             if (!canAdd[v])
                 continue;
 
             bool isIndependent = true;
-            for (int u : independentSet) {
-                if (graph.hasEdge(v, u)) {
+            for (int u = 0; u < n; u++) {
+                if (color[u] == numColors && graph.hasEdge(v, u)) {
                     isIndependent = false;
                     break;
                 }
             }
 
             if (isIndependent) {
-                independentSet.push_back(v);
+                color[v] = numColors;
+                // Remover de uncolored
+                for (size_t i = 0; i < uncolored.size(); i++) {
+                    if (uncolored[i] == v) {
+                        uncolored[i] = uncolored.back();
+                        uncolored.pop_back();
+                        break;
+                    }
+                }
                 // Marcar vecinos como no disponibles
                 for (int u : graph.getNeighbors(v)) {
                     canAdd[u] = false;
                 }
             }
         }
-
-        // Colorear el conjunto independiente
-        for (int v : independentSet) {
-            color[v] = numColors;
-            // Remover de uncolored
-            for (size_t i = 0; i < uncolored.size(); i++) {
-                if (uncolored[i] == v) {
-                    uncolored[i] = uncolored.back();
-                    uncolored.pop_back();
-                    break;
-                }
-            }
-        }
     }
-
+    std::cout << "Cota superior calculada: " << numColors << std::endl;
     return numColors;
 }
 
 int Bounds::calculateLowerBound() {
+    std::cout << "Calculando cota inferior..." << std::endl;
     int n = graph.getVertexCount();
-    int maxCliqueSize = 0;
-    vector<int> currentClique;
-    function<void(int)> dfs = [&](int start) {
-        for (int v = start; v < n; ++v) {
-            bool canAdd = true;
-            for (int u : currentClique) {
+
+    // Usar el grado máximo como cota inferior inicial
+    int lowerBound = 1;
+
+    // Algoritmo voraz para encontrar una clique
+    vector<bool> inClique(n, false);
+    vector<int> candidates(n);
+    for (int i = 0; i < n; i++)
+        candidates[i] = i;
+
+    // Ordenar vértices por grado descendente
+    std::sort(candidates.begin(), candidates.end(), [this](int a, int b) {
+        return graph.getDegree(a) > graph.getDegree(b);
+    });
+
+    // Construir clique vorazmente
+    for (int i = 0; i < n && i < 1000;
+         i++) { // Limitar iteraciones para grafos grandes
+        int v = candidates[i];
+        bool canAdd = true;
+
+        // Verificar si v forma clique con todos los vértices ya seleccionados
+        for (int u = 0; u < n; u++) {
+            if (inClique[u]) {
                 if (!graph.hasEdge(u, v)) {
                     canAdd = false;
                     break;
                 }
             }
-            if (canAdd) {
-                currentClique.push_back(v);
-                if ((int)currentClique.size() > maxCliqueSize) {
-                    maxCliqueSize = currentClique.size();
-                }
-                dfs(v + 1);
-                currentClique.pop_back();
-            }
         }
-    };
-    dfs(0);
-    return maxCliqueSize;
-}
 
+        if (canAdd) {
+            inClique[v] = true;
+            lowerBound =
+                std::max(lowerBound, (int)std::count(inClique.begin(),
+                                                     inClique.end(), true));
+        }
+    }
+
+    // Usar el grado mínimo como otra cota inferior
+    int minDegree = n;
+    for (int v = 0; v < n; v++) {
+        minDegree = std::min(minDegree, graph.getDegree(v));
+    }
+
+    lowerBound = std::max(lowerBound, minDegree + 1);
+
+    std::cout << "Cota inferior calculada: " << lowerBound << std::endl;
+    return lowerBound;
+}
 int Bounds::getLowerBound() const { return lowerBound; }
 int Bounds::getUpperBound() const { return upperBound; }
 void Bounds::updateLowerBound(int newLowerBound) { lowerBound = newLowerBound; }

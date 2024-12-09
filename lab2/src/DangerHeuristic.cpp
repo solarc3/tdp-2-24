@@ -42,31 +42,44 @@ double DangerHeuristic::calculateColorDanger(const ColoringState &state,
 }
 
 ColoringState DangerHeuristic::generateInitialColoring(int maxColors) {
+    std::cout << "Generando coloreo inicial con máximo " << maxColors
+              << " colores" << std::endl;
+
     ColoringState state(graph, maxColors);
 
-    // Get initial vertex ordering
+    std::cout << "Obteniendo orden inicial de vértices..." << std::endl;
     auto orderedVertices = getInitialOrderedVertices();
 
+    std::cout << "Coloreando vértices no CC-dependientes..." << std::endl;
+    int verticesColored = 0;
     for (int vertex : orderedVertices) {
-        // Skip CC-dependent vertices
         if (isVertexCCDependent(state, vertex))
             continue;
 
         int color = selectColor(state, vertex);
         state.assignColor(vertex, color);
+        verticesColored++;
+
+        if (verticesColored % 100 == 0) {
+            std::cout << "Coloreados " << verticesColored << " vértices..."
+                      << std::endl;
+        }
     }
 
-    // Color CC-dependent vertices last
+    std::cout << "Coloreando vértices CC-dependientes..." << std::endl;
     for (int v = 0; v < graph.getVertexCount(); v++) {
         if (state.getColor(v) == -1) {
             int color = selectColor(state, v);
             state.assignColor(v, color);
+            verticesColored++;
         }
     }
 
+    std::cout << "Coloreo inicial completado. Total vértices coloreados: "
+              << verticesColored << std::endl;
+
     return state;
 }
-
 int DangerHeuristic::selectNextVertex(const ColoringState &state) const {
     danger_scores.clear();
     for (int v = 0; v < graph.getVertexCount(); v++) {
