@@ -17,19 +17,6 @@
 using namespace __gnu_pbds;
 
 class BranchAndBound {
-    struct VertexInfo {
-        int vertex;
-        size_t availableColors;
-        double danger;
-        bool operator<(const VertexInfo &other) const {
-            if (availableColors != other.availableColors)
-                return availableColors > other.availableColors;
-
-            return danger < other.danger;
-        }
-    };
-    typedef __gnu_pbds::priority_queue<VertexInfo> VertexQueue;
-    VertexQueue vertexQueue;
     const Graph &graph;
     Bounds &bounds;
     DangerHeuristic &dangerHeuristic;
@@ -42,8 +29,6 @@ class BranchAndBound {
     template <typename T> using gp_hash_table = gp_hash_table<T, null_type>;
 
     using color_set = cc_hash_table<int, null_type, hash<int>>;
-
-    // Métodos para d*
     double calculateDStar(int currentK) const;
     int getMaxIndependentSetSize() const;
     int findBacktrackingDepth(int currentK) const;
@@ -59,4 +44,5 @@ class BranchAndBound {
         : graph(g), bounds(b), dangerHeuristic(d), gen(std::random_device{}()) {
     }
     void solve(ColoringState &solution);
+    void perturb(ColoringState &state, int targetColors);
 };

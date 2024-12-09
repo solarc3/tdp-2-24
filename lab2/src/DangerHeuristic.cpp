@@ -80,13 +80,11 @@ ColoringState DangerHeuristic::generateInitialColoring(int maxColors) {
 
     auto cmp = [](const std::pair<double, int> &left,
                   const std::pair<double, int> &right) {
-        return left.first < right.first; // Max-heap based on danger score
+        return left.first < right.first;
     };
     std::priority_queue<std::pair<double, int>,
                         std::vector<std::pair<double, int>>, decltype(cmp)>
         vertexQueue(cmp);
-
-    // Initialize the priority queue with all uncolored vertices
     for (int v = 0; v < graph.getVertexCount(); ++v) {
         double danger = calculateVertexDanger(state, v);
         vertexQueue.push({danger, v});
@@ -103,9 +101,6 @@ ColoringState DangerHeuristic::generateInitialColoring(int maxColors) {
         int color = selectColor(state, vertex);
         state.assignColor(vertex, color);
         verticesColored++;
-
-        // No need to update danger scores of neighbors here, as the effect is
-        // minimal
     }
 
     std::cout << "Coloreo inicial completado. Total de vértices coloreados: "

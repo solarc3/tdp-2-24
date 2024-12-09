@@ -2,8 +2,8 @@
 #include <algorithm>
 
 Bounds::Bounds(const Graph &graph) : graph(graph) {
-    upperBound = calculateUpperBound();
-    lowerBound = calculateLowerBound();
+    upperBound = std::min(calculateUpperBound(), graph.getVertexCount());
+    lowerBound = std::max(1, calculateLowerBound());
 }
 
 struct VertexComparator {
@@ -108,5 +108,13 @@ int Bounds::calculateLowerBound() {
 
 int Bounds::getLowerBound() const { return lowerBound; }
 int Bounds::getUpperBound() const { return upperBound; }
-void Bounds::updateLowerBound(int newLowerBound) { lowerBound = newLowerBound; }
-void Bounds::updateUpperBound(int newUpperBound) { upperBound = newUpperBound; }
+void Bounds::updateLowerBound(int newLowerBound) {
+    if (newLowerBound > 0 && newLowerBound <= graph.getVertexCount()) {
+        lowerBound = newLowerBound;
+    }
+}
+void Bounds::updateUpperBound(int newUpperBound) {
+    if (newUpperBound > 0 && newUpperBound <= graph.getVertexCount()) {
+        upperBound = newUpperBound;
+    }
+}

@@ -4,7 +4,7 @@
 #include <iostream>
 using namespace __gnu_pbds;
 using namespace std;
-#define vpii vector<pair<int, int>> // sobrenombre para no escribir tanto
+#define vpii vector<pair<int, int>>
 
 class Graph {
     private:
