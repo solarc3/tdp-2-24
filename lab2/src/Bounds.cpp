@@ -1,7 +1,5 @@
 #include "../include/Bounds.h"
 #include <climits>
-#include <functional>
-#include <set>
 
 Bounds::Bounds(const Graph &graph) : graph(graph) {
     upperBound = calculateUpperBound();
@@ -62,7 +60,6 @@ int Bounds::calculateUpperBound() {
 
         const int MAX_INDEPENDENT_SET_ITERATIONS = 1000;
         int indSetIterations = 0;
-
         for (int v : uncolored) {
             if (indSetIterations++ > MAX_INDEPENDENT_SET_ITERATIONS)
                 break;

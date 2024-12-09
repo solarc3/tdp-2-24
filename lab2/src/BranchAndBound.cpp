@@ -1,50 +1,64 @@
 #include "../include/BranchAndBound.h"
+// En BranchAndBound.cpp
 
-void BranchAndBound::solve(ColoringState &solution) {
-    // Obtener coloreo inicial usando la heurística DANGER
-    solution = dangerHeuristic.generateInitialColoring(bounds.getUpperBound());
+BranchAndBound::color_set
+BranchAndBound::getAvailableColorsSet(const ColoringState &state,
+                                      int vertex) const {
 
-    // Si no hay solución inicial válida, crear una usando coloreo secuencial
-    if (solution.getNumColors() == 0) {
-        ColoringState initialState(graph, graph.getVertexCount());
-        for (int v = 0; v < graph.getVertexCount(); v++) {
-            for (int c = 0; c < graph.getVertexCount(); c++) {
-                if (initialState.isValidAssignment(v, c)) {
-                    initialState.assignColor(v, c);
-                    break;
-                }
-            }
-        }
-        solution = initialState;
+    color_set availableColors;
+    auto colorVector = state.getAvailableColors(vertex);
+
+    for (int color : colorVector) {
+        availableColors.insert(color);
     }
 
-    ColoringState bestSolution = solution;
-    int currentK = solution.getNumColors() - 1;
+    return availableColors;
+}
+void BranchAndBound::solve(ColoringState &solution) {
+    // Start with the lower bound from the Bounds class
+    int currentK = bounds.getLowerBound();
 
-    while (currentK >= bounds.getLowerBound()) {
-        ColoringState newState(graph, currentK);
+    std::cout << "Comenzando Branch and Bound con k=" << currentK << std::endl;
 
-        for (int v = 0; v < graph.getVertexCount(); v++) {
-            int color = bestSolution.getColor(v);
-            if (color < currentK) {
-                newState.assignColor(v, color);
-            }
-        }
+    // Initialize solution with the danger heuristic
+    solution = dangerHeuristic.generateInitialColoring(currentK);
 
+    while (currentK <= bounds.getUpperBound()) {
+        std::cout << "Intentando colorear con " << currentK << " colores..."
+                  << std::endl;
+
+        // Create a working copy of the solution
+        ColoringState currentState(graph, currentK);
+
+        // Clear the pruned vertices set for this iteration
         pruned_vertices.clear();
 
-        if (branchAndBoundRecursive(newState, currentK)) {
+        // Calculate appropriate backtracking depth for current k
+        int maxBacktrackDepth = findBacktrackingDepth(currentK);
+
+        // Try to find a solution with currentK colors
+        if (branchAndBoundRecursive(currentState, currentK,
+                                    maxBacktrackDepth)) {
+            std::cout << "¡Solución encontrada con " << currentK << " colores!"
+                      << std::endl;
+
+            // Update the solution and upper bound
+            solution = currentState;
             bounds.updateUpperBound(currentK);
-            bestSolution = newState;
+
+            // Try with fewer colors
             currentK--;
         } else {
+            std::cout << "No se encontró solución con " << currentK
+                      << " colores." << std::endl;
+
+            // Update lower bound and try with more colors
             bounds.updateLowerBound(currentK + 1);
-            break;
+            currentK++;
         }
     }
-
-    solution = bestSolution;
 }
+// En BranchAndBound.cpp, modificar shouldPrune:
 
 bool BranchAndBound::shouldPrune(const ColoringState &state, int vertex,
                                  int color) const {
@@ -53,88 +67,35 @@ bool BranchAndBound::shouldPrune(const ColoringState &state, int vertex,
     }
 
     size_t uncoloredNeighbors = 0;
-    set<int> availableColors;
+    color_set availableColors;
+    int maxColor = state.getMaxUsedColor();
 
     for (int neighbor : graph.getNeighbors(vertex)) {
         if (state.getColor(neighbor) == -1) {
             uncoloredNeighbors++;
-            for (int c = 0; c < color; c++) {
-                if (state.isValidAssignment(neighbor, c)) {
-                    availableColors.insert(c);
-                }
+            auto neighborColors = getAvailableColorsSet(state, neighbor);
+            // Insertar cada color individualmente
+            for (const auto &c : neighborColors) {
+                availableColors.insert(c);
             }
         }
     }
 
-    return uncoloredNeighbors > availableColors.size();
-}
-
-bool BranchAndBound::branchAndBoundRecursive(ColoringState &state,
-                                             int targetColors) {
-    // Si el estado está completo y es legal, encontramos una solución válida
-    if (state.isComplete()) {
-        return state.isLegal();
+    if (uncoloredNeighbors > availableColors.size()) {
+        return true;
     }
 
-    // Seleccionar el siguiente vértice a colorear
-    int vertex = selectBestVertex(state);
-    if (vertex == -1) {
-        return false; // No hay vértices disponibles para colorear
-    }
-
-    // Obtener y ordenar colores disponibles por su valor de DANGER
-    vector<pair<int, double>> orderedColors;
-    auto availableColors = state.getAvailableColors(vertex);
-
-    for (int color : availableColors) {
-        // Solo considerar colores dentro del límite objetivo
-        if (color >= targetColors) {
-            continue;
-        }
-
-        // Verificar si la asignación es válida y no debe ser podada
-        if (state.isValidAssignment(vertex, color) &&
-            !shouldPrune(state, vertex, color)) {
-            double danger =
-                dangerHeuristic.calculateColorDanger(state, vertex, color);
-            orderedColors.emplace_back(color, danger);
+    int saturation = 0;
+    color_set neighborColors;
+    for (int neighbor : graph.getNeighbors(vertex)) {
+        int neighborColor = state.getColor(neighbor);
+        if (neighborColor != -1) {
+            neighborColors.insert(neighborColor);
+            saturation = neighborColors.size();
         }
     }
 
-    // Ordenar colores por valor de DANGER (menor a mayor)
-    sort(orderedColors.begin(), orderedColors.end(),
-         [](const auto &a, const auto &b) { return a.second < b.second; });
-
-    // Probar cada color en orden
-    for (const auto &[color, danger] : orderedColors) {
-        // Hacer backup del estado actual
-        int oldColor = state.getColor(vertex);
-
-        // Asignar color y recursión
-        state.assignColor(vertex, color);
-
-        if (branchAndBoundRecursive(state, targetColors)) {
-            return true; // Se encontró una solución válida
-        }
-
-        // Si esta rama no lleva a solución, deshacer el cambio
-        if (oldColor == -1) {
-            state.unassignColor(vertex);
-        } else {
-            state.assignColor(vertex, oldColor);
-        }
-    }
-
-    return false;
-}
-
-bool BranchAndBound::isInfeasible(const ColoringState &state, int vertex,
-                                  int targetColors) const {
-    for (int c = 0; c < targetColors; c++) {
-        if (state.isValidAssignment(vertex, c))
-            return false;
-    }
-    return true;
+    return saturation > (maxColor * 0.8);
 }
 
 int BranchAndBound::selectBestVertex(const ColoringState &state) const {
@@ -144,15 +105,16 @@ int BranchAndBound::selectBestVertex(const ColoringState &state) const {
     for (int v = 0; v < graph.getVertexCount(); v++) {
         if (state.getColor(v) == -1 &&
             pruned_vertices.find(v) == pruned_vertices.end()) {
-            auto availableColors = state.getAvailableColors(v);
+
+            auto availableColors = getAvailableColorsSet(state, v);
+
             if (availableColors.empty()) {
                 pruned_vertices.insert(v);
                 return -1;
             }
 
             if (availableColors.size() < minAvailableColors) {
-                dangerHeuristic.calculateVertexDanger(
-                    state, v); // Mantener la llamada por consistencia
+                dangerHeuristic.calculateVertexDanger(state, v);
                 selectedVertex = v;
                 minAvailableColors = availableColors.size();
             }
@@ -160,4 +122,88 @@ int BranchAndBound::selectBestVertex(const ColoringState &state) const {
     }
 
     return selectedVertex;
+}
+
+bool BranchAndBound::branchAndBoundRecursive(ColoringState &state,
+                                             int targetColors,
+                                             int maxBacktrackDepth) {
+    static int currentDepth = 0;
+
+    if (state.isComplete()) {
+        return state.isLegal();
+    }
+
+    if (currentDepth > maxBacktrackDepth) {
+        return false;
+    }
+    currentDepth++;
+
+    int vertex = selectBestVertex(state);
+    if (vertex == -1) {
+        currentDepth--;
+        return false;
+    }
+
+    vector<pair<int, double>> orderedColors;
+    auto availableColors = getAvailableColorsSet(state, vertex);
+
+    for (const auto &color : availableColors) {
+        if (color >= targetColors) {
+            continue;
+        }
+
+        if (state.isValidAssignment(vertex, color) &&
+            !shouldPrune(state, vertex, color)) {
+            double danger =
+                dangerHeuristic.calculateColorDanger(state, vertex, color);
+            orderedColors.emplace_back(color, danger);
+        }
+    }
+
+    sort(orderedColors.begin(), orderedColors.end(),
+         [](const auto &a, const auto &b) { return a.second < b.second; });
+
+    const size_t MAX_COLORS_TO_TRY = 5;
+    if (orderedColors.size() > MAX_COLORS_TO_TRY) {
+        orderedColors.resize(MAX_COLORS_TO_TRY);
+    }
+
+    for (const auto &[color, danger] : orderedColors) {
+        int oldColor = state.getColor(vertex);
+        state.assignColor(vertex, color);
+
+        if (branchAndBoundRecursive(state, targetColors, maxBacktrackDepth)) {
+            currentDepth--;
+            return true;
+        }
+
+        if (oldColor == -1) {
+            state.unassignColor(vertex);
+        } else {
+            state.assignColor(vertex, oldColor);
+        }
+    }
+
+    currentDepth--;
+    return false;
+}
+
+int BranchAndBound::findBacktrackingDepth(int currentK) const {
+    // Base depth proportional to graph size
+    int baseDepth = graph.getVertexCount() / 10;
+
+    // Adjust depth based on how close we are to known bounds
+    double boundRatio = static_cast<double>(currentK - bounds.getLowerBound()) /
+                        (bounds.getUpperBound() - bounds.getLowerBound() + 1);
+
+    // Increase depth when we're closer to known feasible solutions
+    int depthAdjustment = static_cast<int>(baseDepth * boundRatio);
+
+    // Add some randomness to avoid getting stuck in the same patterns
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(-baseDepth / 4, baseDepth / 4);
+
+    return std::max(baseDepth + depthAdjustment + dis(gen),
+                    graph.getVertexCount() / 20);
 }

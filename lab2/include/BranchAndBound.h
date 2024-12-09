@@ -1,3 +1,4 @@
+// BranchAndBound.h
 #pragma once
 #include "Bounds.h"
 #include "ColoringState.h"
@@ -9,23 +10,30 @@
 using namespace __gnu_pbds;
 
 class BranchAndBound {
-    using hash_set = cc_hash_table<int, null_type, hash<int>>;
-
     private:
     const Graph &graph;
     Bounds &bounds;
     DangerHeuristic &dangerHeuristic;
-    mutable hash_set pruned_vertices;
+    mutable cc_hash_table<int, null_type, hash<int>> pruned_vertices;
 
-    // Método principal recursivo de B&B
-    bool branchAndBoundRecursive(ColoringState &state, int targetColors);
+    // Para usar el set ordenado para los colores disponibles
+    using ordered_set = tree<int, null_type, std::less<int>, rb_tree_tag,
+                             tree_order_statistics_node_update>;
+    using color_set = cc_hash_table<int, null_type, hash<int>>;
+
+    // Métodos para d*
+    double calculateDStar(int currentK) const;
+    int getMaxIndependentSetSize() const;
+    int findBacktrackingDepth(int currentK) const;
+    bool branchAndBoundRecursive(ColoringState &state, int targetColors,
+                                 int maxBacktrackDepth);
+    bool shouldPrune(const ColoringState &state, int vertex, int color) const;
+    int selectBestVertex(const ColoringState &state) const;
+    color_set getAvailableColorsSet(const ColoringState &state,
+                                    int vertex) const;
 
     public:
     BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &d)
         : graph(g), bounds(b), dangerHeuristic(d) {}
-
     void solve(ColoringState &solution);
-    bool shouldPrune(const ColoringState &state, int vertex, int color) const;
-    bool isInfeasible(const ColoringState &state, int vertex, int target) const;
-    int selectBestVertex(const ColoringState &state) const;
 };
