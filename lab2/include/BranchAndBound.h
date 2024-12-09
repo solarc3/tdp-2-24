@@ -1,48 +1,33 @@
-// BranchAndBound.h
 #pragma once
-#include "../include/BranchAndBound.h"
 #include "Bounds.h"
 #include "ColoringState.h"
 #include "DangerHeuristic.h"
 #include "Graph.h"
-#include <cmath> // Para std::pow
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/priority_queue.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
-#include <functional> // Para std::less
-#include <limits>
-#include <random>
+#include <memory>
 #include <vector>
 
-using namespace __gnu_pbds;
-
 class BranchAndBound {
+    private:
     const Graph &graph;
-    Bounds &bounds;
     DangerHeuristic &dangerHeuristic;
-    mutable cc_hash_table<int, null_type, hash<int>> pruned_vertices;
-    mutable std::mt19937 gen;
-    template <typename T>
-    using ordered_set = tree<T, null_type, std::less<T>, rb_tree_tag,
-                             tree_order_statistics_node_update>;
+    Bounds &bounds;
 
-    template <typename T> using gp_hash_table = gp_hash_table<T, null_type>;
-
-    using color_set = cc_hash_table<int, null_type, hash<int>>;
-    double calculateDStar(int currentK) const;
-    int getMaxIndependentSetSize() const;
-    int findBacktrackingDepth(int currentK) const;
+    // Métodos auxiliares para el branch and bound
     bool branchAndBoundRecursive(ColoringState &state, int targetColors,
-                                 int maxBacktrackDepth, int depth);
-    bool shouldPrune(const ColoringState &state, int vertex, int color) const;
-    int selectBestVertex(const ColoringState &state) const;
-    color_set getAvailableColorsSet(const ColoringState &state,
-                                    int vertex) const;
+                                 int vertex);
+    bool isValidColoring(const ColoringState &state) const;
+
+    // Verifica si un color es válido para un vértice
+    bool isColorValid(const ColoringState &state, int vertex, int color) const;
+
+    // Verifica si el estado actual puede llevar a una solución mejor
+    bool isPromising(const ColoringState &state, int targetColors) const;
 
     public:
-    BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &d)
-        : graph(g), bounds(b), dangerHeuristic(d), gen(std::random_device{}()) {
-    }
+    BranchAndBound(const Graph &g, Bounds &b, DangerHeuristic &dh)
+        : graph(g), bounds(b), dangerHeuristic(dh) {}
+
+    // Método principal que intenta encontrar una coloración con targetColors
+    // colores
     void solve(ColoringState &solution);
-    void perturb(ColoringState &state, int targetColors);
 };
