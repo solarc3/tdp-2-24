@@ -1,0 +1,2 @@
+compilar utilizando make clean all, no usar tracy si no se tiene instalado en el sistema
+los ejemplos se deben agregar con el prefijo examples/ , sino no los encuentra

@@ -1,0 +1,5 @@
+- Para ejecutar el codigo utilizar "make clean all"
+- el nombre del ejecutable es graph, ejecutar con ./graph
+- Al ingresar los ejemplos se deben hacer con el prefijo examples/ , los ejemplos del classroom tambien se encuentran aca listos para usar en formato .txt
+
+- Compilado, ejecutado y programa en g++ version 14.2.1, linux kernel 6.11.3 arch linux 6.11.3
